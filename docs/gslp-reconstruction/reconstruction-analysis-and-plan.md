@@ -89,3 +89,24 @@ recipe to replay on the May 2026 DB.
 - `unattributed-clusters.txt` — offset ranges of GS's in-place hand-work.
 - Source binaries: `~/Downloads/GSLP 2023.rar` (extract with `bsdtar -xf`);
   2023-era patcher tarballs `~/Downloads/CM0102Patcher-2.2{5,6,7}.tar.gz`.
+
+## A2 progress (2026-07-02): corrected geometry + linkage map
+
+**Corrected PE model (supersedes "160KB appended code cave"):** GS/Tapani did NOT append a
+section. The spacemaker physically extends `.data` mid-file (+0x28000 at file 0x6b2000–0x6da000,
+VA 0xAB2000–0xADA000), shifting `.rsrc` — so straight byte-diffs beyond 0x6b2000 are misaligned
+noise, and the extension is **DATA (tables), not code**. Strided records confirm table structures.
+
+**Linkage map (tools in scratchpad segment.py, superseded by this):**
+- Extension content: 4 clusters, 154,071B — dominated by one 150,901B table region
+  (0x6b2000–0x6d6d74) + a 1,049B hot lookup table (0x6d8d78) referenced by 32 code clusters.
+- In-place hand-work (below 0x6b2000): 2,121 clusters. 42 point directly into the extension;
+  288 rewire stock `.data` globals (VA 0x987000–0x9e5000) — the competition-redirection surgery;
+  the rest are localized code/constant edits.
+- Port implication for A4: table relocation + pointer rebasing (mechanical) instead of code
+  relocation; the year-anchor +3 rule applies to table year fields; his %4-cycle code stays
+  excluded per scope.
+
+**Remaining for A2:** label the 288-global-rewiring and 42-extension-linked clusters by
+subsystem (Brazil domestic / CONMEBOL club comps / excluded international cycle / rules
+tweaks), using the A1 comp-ID map and region anchors.
