@@ -12,6 +12,7 @@ base = open(sys.argv[3],'rb').read()
 man = json.load(open(sys.argv[4]))
 ycsrc = open(sys.argv[5]).read()
 SHIFT = int(sys.argv[6])
+CONSERVATIVE = len(sys.argv) > 8 and sys.argv[8] == "--conservative"
 
 HAND = {0x2d782,0x2d795,0xc0c91,0xc34a4,0x150e54,0x18b30a,0x1e069c,0x1e06e6,
         0x1fa425,0x202c36,0x23fbcc,0x566c1f,0x566c5b}   # verified GS year anchors (Direction B)
@@ -24,6 +25,7 @@ for name in ['startYear','startYearMinus19','startYearMinus3','startYearMinus2',
 d = bytearray(base)
 for c in man["clusters"]:
     if c["bucket"] != "INCLUDE": continue
+    if c["start"] < 0x1000: continue   # PE headers are never portable (GS section layout differs)
     a,b = c["start"], c["end"]
     i = a
     while i <= b:
@@ -32,6 +34,8 @@ for c in man["clusters"]:
             d[o:o+2] = base[o:o+2]; i = o+2; continue
         if i in HAND:
             struct.pack_into('<H', d, i, struct.unpack_from('<H',gs,i)[0] + SHIFT); i += 2; continue
+        if CONSERVATIVE and base[i] != clean[i]:
+            i += 1; continue                      # our stack changed this byte: keep ours
         d[i] = gs[i]; i += 1
 # extension delta, additive
 for i in range(0x6b2000, 0x6da000):
