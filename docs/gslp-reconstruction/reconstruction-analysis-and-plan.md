@@ -110,3 +110,19 @@ noise, and the extension is **DATA (tables), not code**. Strided records confirm
 **Remaining for A2:** label the 288-global-rewiring and 42-extension-linked clusters by
 subsystem (Brazil domestic / CONMEBOL club comps / excluded international cycle / rules
 tweaks), using the A1 comp-ID map and region anchors.
+
+## A2 complete (2026-07-02): port manifest
+
+`port-manifest.json` partitions all 2,121 in-place hand-work clusters:
+- **INCLUDE** (domestic/club scope): 1,904 clusters, 45,452 changed bytes — of which
+  **1,592 clusters / 27,570 bytes have zero collisions with our 2025 stack → scriptable
+  verbatim**; the remaining 4,357 colliding bytes need per-cluster reconciliation in A4.
+- **REVIEW** (international hot zones — WC/Euro hosts 0x1F9xxx, intl qualifiers/continental
+  0x50F–0x530, euro cycle/awards): 217 clusters, 5,104 bytes. Continental CLUB comps
+  (Libertadores/Sudamericana calendars) interleave with national-team %4-cycle code here —
+  disassembly-level triage during A4 decides inclusion per cluster.
+- Data extension (file 0x6b2000–0x6da000): tables to relocate + rebase (A4).
+
+Note: nation/comp pointer-table naming defeated arithmetic calibration (globals appear to be
+individual statics, not an indexed array — anchors inconsistent with both record order and ID
+order). Not blocking: labels only matter at REVIEW/collision sites, resolved during A4 triage.
