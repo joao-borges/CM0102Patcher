@@ -38,7 +38,14 @@ also RETEST the A3 direction (our full May-2026 data under his engine) — it ma
   officials clamp, run gslp_d1, language.ldb, stage into GSTEST).
 - Known cosmetics (deferred): club lists not alphabetical (his club table order — official-update
   appends; game lists in record order; fix = physical re-sort + full club-ref remap, polish);
-  "7." squad-number prefix on attribute screens (likely GS exe display baseline).
+  "7." squad-number prefix on attribute screens (likely GS exe display baseline);
+  **Cup.cpp:1278 assert at world-gen (once, harmless)** — DECODED 2026-07-03: stock cup engine
+  asks the fixture scheduler (0x5ac920) for a round date as day-of-year + season-year-offset;
+  scheduler rejects day≥366 (cmp 0x16e @0x5ac98e) or offset≥3 → returns null → assert at
+  0x51a646 (push 0x4fe), fixture skipped, game continues. Re-year artifact in GS's data-driven
+  cup schedule tables (one South-American round's base+offset crosses the season boundary at
+  2026; also fired with HIS data at 2026-start, so not transplant-related). Fix options:
+  runtime break to identify the cup then nudge its date table entry, or suppress the dialog.
 
 Goal: one product line with GS Leagues Patch competition structures (Brazil A/B/C 20 round-robin,
 Série D 36, modern Libertadores/Sudamericana) + **May 2026 players**, playable at **2026-start**
