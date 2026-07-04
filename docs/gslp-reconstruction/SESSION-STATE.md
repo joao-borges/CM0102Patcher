@@ -1,5 +1,24 @@
 # GSLP × May-2026 — Session State (2026-07-03)
 
+## ⚡ 2026-07-03 BREAKTHROUGH #2 — the 0x69BDB9/0x69F82E crash root cause (heap lie)
+GS redirected the five world-gen table redimension reallocs (staff/nonplayer/player/prefs/club,
+call sites 0x526003/0x52602b/0x526049/0x526065/0x52715c, stock target = CRT realloc 0x945667)
+to his own wrapper at **0x601a38**: `HeapReAlloc(crtHeap[0xde4400], HEAP_REALLOC_IN_PLACE_ONLY,
+ptr, size)` — and **on failure it returns the OLD pointer as if it succeeded**. Stock fatal-exits
+if realloc moves (no rebase exists; all cross-pointers already fixed up), which is why he forced
+in-place. With HIS data the heap layout lets in-place growth succeed; with any other data it can
+fail → loader believes it has regen capacity → world-gen writes newgen staff past the block →
+heap corruption → garbage NonPlayer pointers in the famous-staff sweep (0x69BDB9 / 0x69F82E,
+different garbage per run). Likely explains the whole "engine coupled to his DB" mystery
+(incl. earlier bra_reg asserts with A3 data — heap corruption manifests arbitrarily).
+**FIX (built + staged, untested): `a4/cm0102_gs_reyear2026_noHAND_heapfix.exe`** — the 11
+initial table mallocs (0x528b7d, 0x528d1b, 0x528d8d, 0x528dc4, 0x528df5, 0x529bad, 0x529df3,
+0x529e02, 0x529e11, 0x529e20, 0x52cbb1) are detoured through a 13-byte cave at 0x401b81
+(`add dword [esp+4], 0x200000; jmp malloc`) so every table is born with +2 MB slack → the
+later in-place realloc is a shrink → always succeeds. GS wrapper left untouched.
+NEXT TEST = GSTEST (heapfix exe + d1_data v8): Brazil → confirm. If game-data crash clears,
+also RETEST the A3 direction (our full May-2026 data under his engine) — it may work now.
+
 Goal: one product line with GS Leagues Patch competition structures (Brazil A/B/C 20 round-robin,
 Série D 36, modern Libertadores/Sudamericana) + **May 2026 players**, playable at **2026-start**
 (works, see below) and ultimately **2025-start (25/26, June-2026 WC)**. User's daily
