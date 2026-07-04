@@ -136,6 +136,12 @@ divisions (Oeste-SP in Série A!, AD São Caetano in C) are now swapped for squa
   `gslp-brazil-format-evaluation.md` (condensed version of all of this).
 
 ## Remaining roadmap
+0. **De-GS cosmetics pass (user explicitly wants this)**: GS's exe carries several cosmetic
+   changes the user hates (known so far: "7." squad-number prefix on attribute screens; inventory
+   the rest with the user in-game). Approach: use the A2 cluster map of the GS-vs-stock delta,
+   classify display-only clusters, revert them to stock bytes while keeping his competition
+   engine — same region-coherent revert technique as the re-year work. Do AFTER core stability
+   is proven (extended play + season rollover), since every revert needs a retest.
 1. v8 test → iterate 0x69BDB9 until 2026-start transplant plays. Then in-game checklist:
    squads = 2026 players, A/B/C/D counts, Libertadores/Sudamericana, Cup.cpp 1278 triage.
 2. 25/26: solve his %4 qualifier scheduler at 2025 (per-cluster triage of his 0x50F–0x530 delta;
