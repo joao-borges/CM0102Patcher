@@ -212,8 +212,28 @@ class GslpD1 {
             foreach(var i in pool) his.club[i].Division=div;
             Console.WriteLine("  div "+div+": filled +"+pool.Count);
         }
+        // hard guarantee: every pyramid club has a non-empty squad — swap offenders for
+        // matched clubs with real squads (empty-squad clubs in playable divisions crash world-gen)
+        int swapped=0;
+        foreach(var div in pyramid){
+            for(int i=0;i<his.club.Count;i++){
+                var c=his.club[i];
+                if(c.Nation!=brazilHis || c.Division!=div || c.Squad.Any(x=>x>=0)) continue;
+                var repl=Enumerable.Range(0,his.club.Count).Where(k=>
+                    his.club[k].Nation==brazilHis && !pyramid.Contains(his.club[k].Division)
+                    && his.club[k].Squad.Any(x=>x>=0))
+                    .OrderByDescending(k=>his.club[k].Reputation).Cast<int?>().FirstOrDefault();
+                if(repl.HasValue){
+                    his.club[repl.Value].Division=div;
+                    c.Division=357;
+                    Console.WriteLine("  swapped empty-squad '"+S(c.Name)+"' out of div "+div+" for '"+S(his.club[repl.Value].Name)+"'");
+                    swapped++;
+                }
+            }
+        }
+        Console.WriteLine("empty-squad pyramid swaps: "+swapped);
         foreach(var div in pyramid)
-            Console.WriteLine("  div "+div+": "+his.club.Count(c=>c.Nation==brazilHis&&c.Division==div)+" clubs");
+            Console.WriteLine("  div "+div+": "+his.club.Count(c=>c.Nation==brazilHis&&c.Division==div)+" clubs, empty-squad: "+his.club.Count(c=>c.Nation==brazilHis&&c.Division==div&&c.Squad.All(x=>x<0)));
 
         his.Save(Path.Combine(outDir,"index.dat"), true, true, true);
         Console.WriteLine("saved");
