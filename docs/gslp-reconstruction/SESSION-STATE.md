@@ -19,6 +19,27 @@ later in-place realloc is a shrink → always succeeds. GS wrapper left untouche
 NEXT TEST = GSTEST (heapfix exe + d1_data v8): Brazil → confirm. If game-data crash clears,
 also RETEST the A3 direction (our full May-2026 data under his engine) — it may work now.
 
+## 2026-07-03 (later) — HEAPFIX CONFIRMED IN-GAME; two follow-up bugs found & fixed (v9/v10)
+- User verdict on heapfix + v8: boots, world-gen completes, squads good, leagues good,
+  playable — the 0x69BDB9-class crash family is DEAD. Remaining GS baseline noise: Cup.cpp 1278.
+- **v9 fix — Santos crossed match**: gslp_d1.cs:94 tie-break bug. Our stateless "Santos Futebol
+  Clube" keyed identically to his "Santos Futebol Clube" AND "Santos Futebol Clube (AP)";
+  pick[0] took the lower index = the (AP) club → real Santos lost squad+div. Fixed by ranking
+  candidates exact-state > stateless > cross-state. Injectivity drops 164→158 (6 pairs uncrossed).
+- **v10 fix — crash 0x52E175 after a few in-game days**: stock ptr→idx sweep over the OFFICIALS
+  table (43-byte records; +4/+8 name ptrs deref TNames.ID@0x33; +22 nation; **+26 city ptr**,
+  deref @0). Our officials.dat referenced OUR city table (6,725) but d1 keeps HIS city.dat
+  (6,251): 22 refs ≥ 6251 → wild pointers. City tables are append-only aligned (0 name
+  mismatches in shared 6,251), so in-range refs are fine; the 22 overflow refs → -1.
+  Fix lives in the pipeline (tools/gslp_rebuild_d1.sh step 3.5).
+- staff_comp_history Info fields checked: same packed-value shape in both DBs (idx<<16|0xFFFF
+  chains), self-consistent, NOT a cross-table ref — no action.
+- Pipeline is now a single script: `tools/gslp_rebuild_d1.sh` (rebuild d1_data from scratch,
+  officials clamp, run gslp_d1, language.ldb, stage into GSTEST).
+- Known cosmetics (deferred): club lists not alphabetical (his club table order — official-update
+  appends; game lists in record order; fix = physical re-sort + full club-ref remap, polish);
+  "7." squad-number prefix on attribute screens (likely GS exe display baseline).
+
 Goal: one product line with GS Leagues Patch competition structures (Brazil A/B/C 20 round-robin,
 Série D 36, modern Libertadores/Sudamericana) + **May 2026 players**, playable at **2026-start**
 (works, see below) and ultimately **2025-start (25/26, June-2026 WC)**. User's daily

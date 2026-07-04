@@ -90,8 +90,11 @@ class GslpD1 {
             var ok=Key(S(ours.club[i].Name));
             List<int> cands;
             if(hisByKey.TryGetValue(ok.Item1,out cands)){
-                // prefer state-consistent
-                var pick=cands.Where(c=>ok.Item2==""||hisKeys[c].Item2==""||hisKeys[c].Item2==ok.Item2).ToList();
+                // prefer state-consistent; rank: exact state match > stateless > cross-state
+                // (fixes Santos FC matching Santos (AP): stateless ours must prefer stateless his)
+                var pick=cands.Where(c=>ok.Item2==""||hisKeys[c].Item2==""||hisKeys[c].Item2==ok.Item2)
+                              .OrderByDescending(c=>hisKeys[c].Item2==ok.Item2?2:(hisKeys[c].Item2==""?1:0))
+                              .ToList();
                 if(pick.Count>0){ ourToHis[i]=pick[0]; matched++; continue; }
             }
             // containment fallback: unique his key that contains/is contained by ours, state-consistent, len>=8
