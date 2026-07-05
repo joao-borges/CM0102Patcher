@@ -28,9 +28,9 @@ class GslpD1 {
         return sb.ToString();
     }
     static readonly Dictionary<string,string> ABBR=new Dictionary<string,string>{
-        {"ec","esporteclube"},{"fc","futebolclube"},{"ac","atleticoclube"},{"aa","associacaoatletica"},
-        {"ad","associacaodesportiva"},{"sd","sociedadedesportiva"},{"se","sociedadeesportiva"},
-        {"cs","clubsportivo"},{"sc","sportclub"},{"ca","clubeatletico"},{"cr","clubederegatas"}};
+        {"ec","esporte clube"},{"fc","futebol clube"},{"ac","atletico clube"},{"aa","associacao atletica"},
+        {"ad","associacao desportiva"},{"sd","sociedade desportiva"},{"se","sociedade esportiva"},
+        {"cs","club sportivo"},{"sc","sport club"},{"ca","clube atletico"},{"cr","clube regatas"}};   // NB expansions must be filler-free ("de" is dropped from real names)
     static readonly HashSet<string> FILLER=new HashSet<string>{"de","do","da","das","dos","e"};
     // returns (key, state) — state from a trailing "(XX)" if present
     static Tuple<string,string> Key(string name){
@@ -40,7 +40,7 @@ class GslpD1 {
         var toks=System.Text.RegularExpressions.Regex.Split(Deaccent(name),@"[^a-z0-9]+")
             .Where(t=>t.Length>0 && !FILLER.Contains(t))
             .Select(t=>ABBR.ContainsKey(t)?ABBR[t]:t);
-        return Tuple.Create(string.Join("",toks),state);
+        return Tuple.Create(string.Join(" ",toks),state);   // space-joined: containment respects token boundaries
     }
 
     static void CopyStaffRefs(TClub src, TClub dst){
@@ -78,37 +78,85 @@ class GslpD1 {
         // club name maps (expanded keys + state awareness)
         var hisKeys=new List<Tuple<string,string>>();
         var hisByKey=new Dictionary<string,List<int>>();
+        var hisShortKeys=new List<string>();
+        var hisByShort=new Dictionary<string,List<int>>();
         for(int i=0;i<his.club.Count;i++){
             var kk=Key(S(his.club[i].Name)); hisKeys.Add(kk);
             if(!hisByKey.ContainsKey(kk.Item1)) hisByKey[kk.Item1]=new List<int>();
             hisByKey[kk.Item1].Add(i);
+            var sk=Key(S(his.club[i].ShortName)).Item1; hisShortKeys.Add(sk);
+            if(sk.Length>0){
+                if(!hisByShort.ContainsKey(sk)) hisByShort[sk]=new List<int>();
+                hisByShort[sk].Add(i);
+            }
         }
         var ourToHis=new int[ours.club.Count];
-        int matched=0, contained=0;
+        int matched=0, contained=0, shortFixed=0, shortMatched=0;
         for(int i=0;i<ours.club.Count;i++){
             ourToHis[i]=-1;
             var ok=Key(S(ours.club[i].Name));
+            var osk=Key(S(ours.club[i].ShortName)).Item1;
+            // nation guard: nation tables are aligned 1:1 (verified above), so a match is only
+            // valid within the same nation — kills cross-nation crossings (Al-Ahli SYR vs QAT etc.).
+            // Our DB deactivates dead clubs with Nation=-1; only enforce when BOTH sides are valid.
+            int nat=ours.club[i].Nation;
+            Func<int,bool> natOK = c => nat<0 || his.club[c].Nation<0 || his.club[c].Nation==nat;
+            // unique short-name hit (used both as recycled-record tiebreak and as fallback):
+            // update-makers reliably update SHORT names on recycled records; long names go stale
+            // (e.g. Inter Miami living in a record still long-named 'Miami Fusion FC').
+            int shortHit=-1;
+            List<int> scands;
+            if(osk.Length>0 && hisByShort.TryGetValue(osk,out scands)){
+                var sc=scands.Where(c=>natOK(c)).ToList();
+                if(sc.Count==1) shortHit=sc[0];
+            }
             List<int> cands;
             if(hisByKey.TryGetValue(ok.Item1,out cands)){
                 // prefer state-consistent; rank: exact state match > stateless > cross-state
                 // (fixes Santos FC matching Santos (AP): stateless ours must prefer stateless his)
-                var pick=cands.Where(c=>ok.Item2==""||hisKeys[c].Item2==""||hisKeys[c].Item2==ok.Item2)
+                var pick=cands.Where(c=>natOK(c))
+                              .Where(c=>ok.Item2==""||hisKeys[c].Item2==""||hisKeys[c].Item2==ok.Item2)
                               .OrderByDescending(c=>hisKeys[c].Item2==ok.Item2?2:(hisKeys[c].Item2==""?1:0))
                               .ToList();
-                if(pick.Count>0){ ourToHis[i]=pick[0]; matched++; continue; }
+                if(pick.Count>0){
+                    int p=pick[0];
+                    // recycled-record override: long names agree but short names point elsewhere
+                    if(shortHit>=0 && shortHit!=p && osk.Length>0 && hisShortKeys[p]!=osk){
+                        Console.WriteLine("  short-name override: '"+S(ours.club[i].Name)+"' [short '"+S(ours.club[i].ShortName)+"'] -> his '"+S(his.club[shortHit].Name)+"' (long-name pick was '"+S(his.club[p].Name)+"' short '"+S(his.club[p].ShortName)+"')");
+                        p=shortHit; shortFixed++;
+                    }
+                    ourToHis[i]=p; matched++; continue;
+                }
             }
+            // short-name fallback: no long-name match, but a unique short-name match exists
+            if(shortHit>=0){ ourToHis[i]=shortHit; matched++; shortMatched++; continue; }
             // containment fallback: unique his key that contains/is contained by ours, state-consistent, len>=8
             if(ok.Item1.Length>=8){
                 int hit=-1, hits=0;
                 for(int c=0;c<hisKeys.Count;c++){
+                    if(!natOK(c)) continue;
                     var hk=hisKeys[c];
                     if(ok.Item2!="" && hk.Item2!="" && hk.Item2!=ok.Item2) continue;
-                    if(hk.Item1.Length>=8 && (hk.Item1.Contains(ok.Item1)||ok.Item1.Contains(hk.Item1))){ hit=c; hits++; if(hits>1)break; }
+                    if(hk.Item1.Length>=8 && ((" "+hk.Item1+" ").Contains(" "+ok.Item1+" ")||(" "+ok.Item1+" ").Contains(" "+hk.Item1+" "))){ hit=c; hits++; if(hits>1)break; }
                 }
                 if(hits==1){ ourToHis[i]=hit; matched++; contained++; }
             }
         }
-        Console.WriteLine("club match: "+matched+"/"+ours.club.Count+" ("+contained+" via containment)");
+        Console.WriteLine("club match: "+matched+"/"+ours.club.Count+" ("+contained+" via containment, "+shortMatched+" via short-name, "+shortFixed+" recycled-record overrides)");
+        // audit: matched pairs whose short names disagree AND both sides sit in a division —
+        // candidates for further recycled-record crossings; review manually.
+        int audits=0;
+        for(int i=0;i<ours.club.Count;i++){
+            int t=ourToHis[i]; if(t<0) continue;
+            var osk=Key(S(ours.club[i].ShortName)).Item1;
+            if(osk.Length==0||hisShortKeys[t].Length==0) continue;
+            if(osk!=hisShortKeys[t] && !osk.Contains(hisShortKeys[t]) && !hisShortKeys[t].Contains(osk)
+               && ours.club[i].Division>=0 && his.club[t].Division>=0){
+                if(audits<25) Console.WriteLine("  AUDIT short-name mismatch: ours '"+S(ours.club[i].Name)+"'/'"+S(ours.club[i].ShortName)+"' (div "+ours.club[i].Division+") -> his '"+S(his.club[t].Name)+"'/'"+S(his.club[t].ShortName)+"' (div "+his.club[t].Division+")");
+                audits++;
+            }
+        }
+        Console.WriteLine("audit: "+audits+" matched pairs with disagreeing short names (both in divisions)");
         // enforce INJECTIVITY: the game asserts staff<->club slot consistency (Database.cpp:1583),
         // so two our-clubs must never map to the same his-club. First claimant wins.
         var claimed=new int[his.club.Count]; for(int k=0;k<claimed.Length;k++) claimed[k]=-1;

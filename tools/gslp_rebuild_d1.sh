@@ -68,5 +68,8 @@ fi
 
 echo "== 6. stage into GSTEST"
 rsync -a --delete "$W/d1_data/" "$GAME/Data/"
-: > "$HOME/Downloads/CM0102-GSTEST.app/Contents/Resources/Logs/LastRunWine.log" || true
+LOG="$HOME/Downloads/CM0102-GSTEST.app/Contents/Resources/Logs/LastRunWine.log"
+mkdir -p "$W/logs"
+if [ -s "$LOG" ]; then cp "$LOG" "$W/logs/wine-$(date +%Y%m%d-%H%M%S).log"; fi
+: > "$LOG" || true
 echo "staged. exe in place: $(md5 -q "$GAME/cm0102.exe")"
