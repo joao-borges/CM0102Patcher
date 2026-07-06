@@ -135,6 +135,25 @@ divisions (Oeste-SP in Série A!, AD São Caetano in C) are now swapped for squa
 - Analysis: `docs/gslp-reconstruction/*` (A1/A2 reports, port-manifest.json), memory file
   `gslp-brazil-format-evaluation.md` (condensed version of all of this).
 
+## ✅ 2026-07-06 — 2026-START VALIDATED BY EXTENDED PLAY
+User played Dec 2026 → April: São Paulo state league runs, save/reload works, board screens fine
+(earlier transfer-funds crash did NOT reproduce on the v11/v12 build — likely another stale-ref
+casualty fixed by the matcher overhaul). v12 adds May-2026 cosmetics: language.ldb (modern
+nation display names — "Holland"→"Netherlands" comes from the ldb, both DBs store "Holland"),
+colour.dat (updated RGB palette), nat_club names+kit colours (462), club kit colours (2,811).
+
+## ▶ CURRENT FOCUS: 2025-start (user's PRIMARY goal — 25/26 season, June-2026 WC)
+The old 0x91DF0E "qualifier scheduler %4" crash was diagnosed PRE-heap-fix and may have been
+heap-lie corruption all along. Retest first before believing it:
+- Built `a4/cm0102_gs_reyear2025_noHAND_heapfix.exe` (same 11-site alloc detour, cave 0x401b81).
+- Staged in NEW parallel bundle `~/Downloads/CM0102-GSTEST25.app`
+  (bundle id com.CM0102GSTEST25.wineskin; same d1_data; GSTEST untouched — user's 2026 save
+  keeps playing there). NB: old Wineskin single-instance — only ONE of the bundles can run at
+  a time (and main Starter Kit must be closed).
+- If 0x91DF0E persists at 2025: resume per-cluster triage of his 0x50F000–0x530000 intl-zone
+  delta (65 clusters mapped in conversation history pre-compact; stockintl v1/v2/v3 results
+  in section 4 above).
+
 ## Remaining roadmap
 0. **De-GS cosmetics pass (user explicitly wants this)**: GS's exe carries several cosmetic
    changes the user hates (known so far: "7." squad-number prefix on attribute screens; inventory
