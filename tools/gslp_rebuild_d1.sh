@@ -15,6 +15,8 @@ echo "== 2. swap in our staff-side files"
 for f in staff.dat staff_history.dat staff_comp_history.dat first_names.dat second_names.dat common_names.dat officials.dat player_setup.cfg; do
   cp "$OURS/$f" "$W/d1_data/$f"
 done
+# cosmetic side: May-2026 colour definitions (aligned 34-entry table, updated RGBs)
+cp "$OURS/colour.dat" "$W/d1_data/colour.dat"
 
 echo "== 3. swap index.dat entries (10)"
 python3 - "$W/d1_data/index.dat" "$OURS/index.dat" <<'EOF'
@@ -61,10 +63,8 @@ echo "== 4. compile + run gslp_d1"
 mcs "$P/tools/gslp_d1.cs" -r:"$P/bin/Release/CM0102Patcher.exe" -out:"$W/gslp_d1.exe" 2>&1 | grep -v warning || true
 MONO_PATH="$P/bin/Release" mono "$W/gslp_d1.exe" "$W/d1_data" "$OURS"
 
-echo "== 5. language.ldb"
-if [ ! -f "$W/d1_data/language.ldb" ]; then
-  unzip -p /Users/joaoborges/workspace/CM0102-Starter-Kit/data/patched_data.zip "*language.ldb" > "$W/d1_data/language.ldb"
-fi
+echo "== 5. language.ldb (May-2026 one: modern nation names e.g. Netherlands)"
+cp "$OURS/language.ldb" "$W/d1_data/language.ldb"
 
 echo "== 6. stage into GSTEST"
 rsync -a --delete "$W/d1_data/" "$GAME/Data/"

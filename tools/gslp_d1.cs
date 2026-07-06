@@ -228,9 +228,31 @@ class GslpD1 {
 
         // 3b. national teams: same order both DBs (verified 462/462 name match) —
         //     take OUR staff-referencing fields (squads valid vs our staff file), keep his stadiums etc.
-        for(int i=0;i<Math.Min(his.nat_club.Count,ours.nat_club.Count);i++)
+        for(int i=0;i<Math.Min(his.nat_club.Count,ours.nat_club.Count);i++){
             CopyStaffRefs(ours.nat_club[i],his.nat_club[i]);
-        Console.WriteLine("nat_club: staff refs copied for "+Math.Min(his.nat_club.Count,ours.nat_club.Count)+" national teams");
+            // cosmetics: May-2026 kit colours + names (colour.dat is swapped to ours; tables align 1:1)
+            var hn=his.nat_club[i]; var on=ours.nat_club[i];
+            Array.Copy(on.Name,hn.Name,hn.Name.Length); hn.GenderName=on.GenderName;
+            Array.Copy(on.ShortName,hn.ShortName,hn.ShortName.Length); hn.ShortGenderName=on.ShortGenderName;
+            hn.ForeColour1=on.ForeColour1; hn.BackColour1=on.BackColour1;
+            hn.ForeColour2=on.ForeColour2; hn.BackColour2=on.BackColour2;
+            hn.ForeColour3=on.ForeColour3; hn.BackColour3=on.BackColour3;
+        }
+        Console.WriteLine("nat_club: staff refs + names + kit colours copied for "+Math.Min(his.nat_club.Count,ours.nat_club.Count)+" national teams");
+        // club kit colours from May-2026 for matched clubs (indices into the swapped colour.dat)
+        int kitCopied=0;
+        for(int i=0;i<ours.club.Count;i++){
+            int t=ourToHis[i]; if(t<0) continue;
+            var hc=his.club[t]; var oc=ours.club[i];
+            if(hc.ForeColour1!=oc.ForeColour1||hc.BackColour1!=oc.BackColour1||hc.ForeColour2!=oc.ForeColour2||
+               hc.BackColour2!=oc.BackColour2||hc.ForeColour3!=oc.ForeColour3||hc.BackColour3!=oc.BackColour3){
+                hc.ForeColour1=oc.ForeColour1; hc.BackColour1=oc.BackColour1;
+                hc.ForeColour2=oc.ForeColour2; hc.BackColour2=oc.BackColour2;
+                hc.ForeColour3=oc.ForeColour3; hc.BackColour3=oc.BackColour3;
+                kitCopied++;
+            }
+        }
+        Console.WriteLine("club kit colours updated from May-2026: "+kitCopied);
 
         // 4. Brazilian pyramid realignment to May-2026 lineups (ours already A3-shaped: 65/79/80/270)
         int brazilHis=his.nation.ToList().FindIndex(n=>S(n.Name)=="Brazil");
