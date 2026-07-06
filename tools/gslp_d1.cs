@@ -239,6 +239,32 @@ class GslpD1 {
             hn.ForeColour3=on.ForeColour3; hn.BackColour3=on.BackColour3;
         }
         Console.WriteLine("nat_club: staff refs + names + kit colours copied for "+Math.Min(his.nat_club.Count,ours.nat_club.Count)+" national teams");
+        // stale recycled long names: BOTH databases recycled these dead-franchise records and
+        // forgot the long name (short name is the maintained truth). Fix the display name.
+        var staleLong=new Dictionary<string,string>{ {"Tampa Bay Mutiny|LAFC","Los Angeles FC"}, {"Kansas City Wizards|Sporting KC","Sporting Kansas City"} };
+        for(int i=0;i<his.club.Count;i++){
+            string k=S(his.club[i].Name)+"|"+S(his.club[i].ShortName);
+            string fix;
+            if(staleLong.TryGetValue(k,out fix)){
+                var b=L.GetBytes(fix); Array.Clear(his.club[i].Name,0,his.club[i].Name.Length);
+                Array.Copy(b,his.club[i].Name,Math.Min(b.Length,his.club[i].Name.Length-1));
+                Console.WriteLine("  stale long name fixed: '"+k+"' -> '"+fix+"'");
+            }
+        }
+        // audit: active matched clubs whose long and short names share NO token — candidates
+        // for more stale recycled long names (hand-extend staleLong above as user reports them)
+        int stale=0;
+        for(int i=0;i<his.club.Count;i++){
+            if(his.club[i].Division<0||his.club[i].Reputation<4000) continue;
+            var lk=Key(S(his.club[i].Name)).Item1.Split(' ');
+            var sk=Key(S(his.club[i].ShortName)).Item1.Split(' ');
+            if(lk.Length==0||sk.Length==0||sk[0].Length==0) continue;
+            if(!lk.Intersect(sk).Any()){
+                if(stale<15) Console.WriteLine("  AUDIT stale-long-name candidate: '"+S(his.club[i].Name)+"' short '"+S(his.club[i].ShortName)+"' (div "+his.club[i].Division+" rep "+his.club[i].Reputation+")");
+                stale++;
+            }
+        }
+        Console.WriteLine("stale-long-name candidates (active, rep>=4000): "+stale);
         // club kit colours from May-2026 for matched clubs (indices into the swapped colour.dat)
         int kitCopied=0;
         for(int i=0;i<ours.club.Count;i++){
