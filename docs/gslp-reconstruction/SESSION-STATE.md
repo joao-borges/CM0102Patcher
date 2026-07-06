@@ -150,9 +150,24 @@ heap-lie corruption all along. Retest first before believing it:
   (bundle id com.CM0102GSTEST25.wineskin; same d1_data; GSTEST untouched — user's 2026 save
   keeps playing there). NB: old Wineskin single-instance — only ONE of the bundles can run at
   a time (and main Starter Kit must be closed).
-- If 0x91DF0E persists at 2025: resume per-cluster triage of his 0x50F000–0x530000 intl-zone
-  delta (65 clusters mapped in conversation history pre-compact; stockintl v1/v2/v3 results
-  in section 4 above).
+- Heapfix retest CONFIRMED 0x91DF0E is real (crash at ~70% league init, read [ebx+0x3e], ebx=0).
+- **0x91DF0E DECODED (2026-07-06)**: fault is in a STOCK helper 0x91def0 (no GS delta ±0x400):
+  given a comp object, it takes group ptrs [this+0xc][ [this+0x100] ] and [[this+0x101]] and
+  finds the team present in both lists ([grp+0xb1] vs [grp2+0xa7], counts at [grp+0x3e]).
+  Caller 0x913e42 (wc_europe_league.cpp neighborhood) fetches the OTHER comp via
+  compTable[*0x9cf780]. At 2025-start the game is MID-WC-CYCLE (WC June 2026) and world-gen
+  retro-generates the ongoing European qualifying — GS's rewritten qualifying never created
+  those groups outside his start phase (his 2022 = +4 = 2026 keeps phase; +3 breaks it).
+- **Fix strategy = null-guard whack-a-mole**: extend the helper's existing "count<=0 → return 0"
+  path to also fire on NULL group ptrs (missing group == empty group; stock has fallbacks).
+  Patch v1 (`a4/..._heapfix_nullg1.exe`, staged in GSTEST25): site 0x91df0c (xor edi,edi +
+  cmp [ebx+0x3e],di) → jmp cave 0x411c9f {xor edi,edi; test ebx,ebx; je 0x91df65; test eax,eax;
+  je 0x91df65; cmp; jmp 0x91df12}. Expect possible further null-group crash sites downstream —
+  fix each the same way until world-gen completes, then validate WC-2026 shape in-game.
+- ⚠ CAVE SAFETY: nop runs are NOT all dead — 0x40e5b3 (224×0x90) is a LIVE fall-through sled
+  (GS nopped stock code out). Only use runs directly preceded by ret/jmp/int3: 0x411c9f (46),
+  0x42a7d7 (28), 0x42d739 (24), 0x42dba1 (160, after ret imm). 0x401b81 (15) holds the heapfix
+  detour. Heapfix cave/site addresses identical in 2025 and 2026 exes.
 
 ## Remaining roadmap
 0. **De-GS cosmetics pass (user explicitly wants this)**: GS's exe carries several cosmetic
