@@ -168,6 +168,20 @@ heap-lie corruption all along. Retest first before believing it:
   (GS nopped stock code out). Only use runs directly preceded by ret/jmp/int3: 0x411c9f (46),
   0x42a7d7 (28), 0x42d739 (24), 0x42dba1 (160, after ret imm). 0x401b81 (15) holds the heapfix
   detour. Heapfix cave/site addresses identical in 2025 and 2026 exes.
+- 2025 test round 2 (nullg1): game PLAYS (world-gen ok, days of gameplay) but WC-2026 draw
+  picked junk: NO European teams, CONMEBOL only Argentina (= holders auto-slot), other zones
+  random (stock simulated). GS's rewritten Euro+CONMEBOL qualifying can't retro-generate
+  mid-cycle; nullguard let the draw run on nothing. v3 scalpel insufficient.
+- Long-name renames (LAFC/Sporting KC) BROKE GS's binder (TAMPA_BAY_MUTINY /
+  KANSAS_CITY_WIZARDS index warnings): his engine resolves clubs BY LONG NAME. Renames
+  disabled (v14); proper fix = rename data + patch his binder strings (cosmetics pass).
+- **CURRENT EXPERIMENT (staged in GSTEST25): `a4/cm0102_gs_reyear2025_stockwc.exe`** — FULL
+  stock revert of GS's intl-zone delta (file 0x50F000–0x530000 = VA 0x90F000–0x930000,
+  3,032 GS bytes → stock; Nick site file 0x5291b4 re-shifted 2003→2027; heapfix kept; nullguard
+  & v3 sites overwritten by stock copy = intended). Rationale: the old "broad revert breaks
+  domestic (0x6827E3)" result predates the heapfix and smells like heap corruption. If this
+  boots + WC draw sensible → ship shape for 25/26 = stock internationals + GS club comps.
+  If domestic crash returns → interleaving is real; fall back to per-cluster triage.
 
 ## Remaining roadmap
 0. **De-GS cosmetics pass (user explicitly wants this)**: GS's exe carries several cosmetic
