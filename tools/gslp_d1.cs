@@ -240,8 +240,11 @@ class GslpD1 {
         }
         Console.WriteLine("nat_club: staff refs + names + kit colours copied for "+Math.Min(his.nat_club.Count,ours.nat_club.Count)+" national teams");
         // stale recycled long names: BOTH databases recycled these dead-franchise records and
-        // forgot the long name (short name is the maintained truth). Fix the display name.
-        var staleLong=new Dictionary<string,string>{ {"Tampa Bay Mutiny|LAFC","Los Angeles FC"}, {"Kansas City Wizards|Sporting KC","Sporting Kansas City"} };
+        // forgot the long name (short name is the maintained truth). DO NOT rename yet:
+        // GS's binder references clubs BY LONG NAME (renaming LAFC/Sporting KC produced
+        // TAMPA_BAY_MUTINY / KANSAS_CITY_WIZARDS index warnings at world-gen). Proper fix =
+        // rename here AND patch the matching binder strings in his exe extension (cosmetics pass).
+        var staleLong=new Dictionary<string,string>{};
         for(int i=0;i<his.club.Count;i++){
             string k=S(his.club[i].Name)+"|"+S(his.club[i].ShortName);
             string fix;
