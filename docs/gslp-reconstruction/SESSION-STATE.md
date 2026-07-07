@@ -196,6 +196,22 @@ heap-lie corruption all along. Retest first before believing it:
     0x83129d/0x831711/0x833046 (comp-year-table region, file 0x43xxxx) + 0x902cd7 (wc-adjacent),
     140 bytes. Theory: his comp-year hooks answer "does comp X run in year Y" — wrong at 2025
     phase → groups never created → all the null-group crashes + junk WC draw.
+  - stockwc4–7 + bisect rounds (2026-07-07/08): hook-cutting is a dead end — many GS hooks are
+    DATA-coupled (0x43f717/0x43f7f0 = his currency system; cutting → startup crash 0x43F775).
+    Bisect over reverts: clusters 0-10 alone pass game data (but comp_stats 1664 spam);
+    clusters 11-22 (hook cuts 0x4c6-0x585) break game data; intl-zone revert breaks game data
+    at 0x6827E3 with ANY data (his/pure/A3) even with inbound-edge callers severed (stockwc7).
+    CONCLUSION: reverting GS's intl zone from HIS exe is not viable by byte-surgery from the
+    GS side — too many unmapped dependencies.
+  - **PIVOT (current test): PORT direction resurrected.** Old port-F was DOUBLY corrupt:
+    (a) built with the poisoned 13-site HAND anchor set (5 bogus call-displacement shifts),
+    (b) inherits GS's heap-lie wrapper (port copies the 0x526003→0x601a38 redirects).
+    Its old failures (squad_manager 1200 etc.) are explained; direction never had a fair trial.
+    Rebuilt clean: `gs_pristine_reconstructed.exe` (reyear2025_noHAND unshifted −3, mod4→2022;
+    132 sites) → /tmp/port_nohand.py (gslp_a4_port.py with HAND=∅) → `a4/cm0102_gsport_2025G.exe`
+    → +11-site heapfix → `a4/cm0102_gsport_2025G_heapfix.exe` (STAGED in GSTEST25 + A3 data).
+    Port architecture: stock 2025 base exe (no %4 problem, stock intl), GS INCLUDE clusters
+    for club comps, REVIEW (intl %4) clusters never copied.
   - Remaining external hooks if needed: 0x8426c8/f7, 0x84571f, 0x84621d, 0x8ca890, 0x40b138,
     0x40bcb4, 0x40d225, 0x40dba3, 0x430fe9-family (7×→0x966c31), 0x43f717, 0x43f7f0, 0x4c61a9,
     0x4ea210/5, 0x539ae9, 0x5523fb, 0x553a4b, 0x553ca9, 0x56fb15, 0x57c698, 0x57d9dc, 0x57f60c,
@@ -203,7 +219,11 @@ heap-lie corruption all along. Retest first before believing it:
     0x71ba4a, 0x78a3f2/7, 0x7abced, 0x7acfa0, 0x7c6bda, 0x7ebe32/3d, 0x7ec138, 0x84571f,
     0x8ca890. Keep: 0x526003/2b/49/65+0x52715c (heap wrapper, benign with heapfix).
 
-## Remaining roadmap
+## 2026-07-07 — stockwc line DEAD-ENDED; pivot to port-F + heapfix
+- stockwc2-7 + bisect (186 clusters) established: reverting the intl zone breaks world-gen at
+  0x6827E3 DATA-INDEPENDENTLY (his DB, pure May-2026, A3 all crash); severing the 13 inbound
+  GS edges into the zone (stockwc7) did NOT cure it — GS's zone coupling is denser than its
+  call graph (data tables/vtables/mid-function links). Also: hook-cut reverts 11-22
 0. **De-GS cosmetics pass (user explicitly wants this)**: GS's exe carries several cosmetic
    changes the user hates (known so far: "7." squad-number prefix on attribute screens; inventory
    the rest with the user in-game). Approach: use the A2 cluster map of the GS-vs-stock delta,
