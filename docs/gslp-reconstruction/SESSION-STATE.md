@@ -175,13 +175,33 @@ heap-lie corruption all along. Retest first before believing it:
 - Long-name renames (LAFC/Sporting KC) BROKE GS's binder (TAMPA_BAY_MUTINY /
   KANSAS_CITY_WIZARDS index warnings): his engine resolves clubs BY LONG NAME. Renames
   disabled (v14); proper fix = rename data + patch his binder strings (cosmetics pass).
-- **CURRENT EXPERIMENT (staged in GSTEST25): `a4/cm0102_gs_reyear2025_stockwc.exe`** — FULL
-  stock revert of GS's intl-zone delta (file 0x50F000–0x530000 = VA 0x90F000–0x930000,
-  3,032 GS bytes → stock; Nick site file 0x5291b4 re-shifted 2003→2027; heapfix kept; nullguard
-  & v3 sites overwritten by stock copy = intended). Rationale: the old "broad revert breaks
-  domestic (0x6827E3)" result predates the heapfix and smells like heap corruption. If this
-  boots + WC draw sensible → ship shape for 25/26 = stock internationals + GS club comps.
-  If domestic crash returns → interleaving is real; fall back to per-cluster triage.
+- **stockwc experiment log (2026-07-06/07):**
+  - stockwc (intl zone file 0x50F000–0x530000 → stock, +heapfix): crash 0x6827E3 — which turns
+    out to be a STOCK function reading [group+0xb1] with group==NULL: the "domestic breakage"
+    of the old broad-revert experiments was ALWAYS this same null-group family. NO interleaving.
+  - stockwc2 (+ dispatcher calendar constants VA 0x5ca598–0x5ccd41, 243 B → stock): same crash,
+    earlier. Dispatcher constants not the gate.
+  - Data ruled out: his nation_comp.dat ≈ ours (both modernized identically vs 2001 stock,
+    except slot [11]: his=CONCACAF Gold Cup, ours=Asian Cup Qualifying — explains the eternal
+    ASIAN_CUP_QUALIFYING binder warning). nation_comp NOT the cause.
+  - **KEY STRUCTURAL FINDING**: GS's exe has NO code section of its own — his added code lives
+    in two .text caves (0x601a00–0x603000 next to his heap wrapper; 0x966800–0x967000 at .text
+    end) + data tables in .data slack (VA 0xab2000–0xada000, file 0x6b2000–0x6da000).
+    173 call/jmp hooks total; ~45 are external (stock code → cave). His cave code contains year
+    constants NICK'S LISTS DON'T COVER (e.g. sub edx,2003 = 2022−19 pattern) — the re-year
+    never touches GS's own code. At +4 phase parity masks it; at +3 it breaks.
+  - Hook 0x83129d = file 0x43129d ≈ Nick site 0x43129a (one of the 2 "GS rewrites" the re-year
+    skips): stock pushes season date (20/5/startYear-ish); GS cave pushes (29/10/2016?+flag).
+  - **stockwc3 (STAGED in GSTEST25)**: stockwc2 + revert 4 external hooks to stock:
+    0x83129d/0x831711/0x833046 (comp-year-table region, file 0x43xxxx) + 0x902cd7 (wc-adjacent),
+    140 bytes. Theory: his comp-year hooks answer "does comp X run in year Y" — wrong at 2025
+    phase → groups never created → all the null-group crashes + junk WC draw.
+  - Remaining external hooks if needed: 0x8426c8/f7, 0x84571f, 0x84621d, 0x8ca890, 0x40b138,
+    0x40bcb4, 0x40d225, 0x40dba3, 0x430fe9-family (7×→0x966c31), 0x43f717, 0x43f7f0, 0x4c61a9,
+    0x4ea210/5, 0x539ae9, 0x5523fb, 0x553a4b, 0x553ca9, 0x56fb15, 0x57c698, 0x57d9dc, 0x57f60c,
+    0x5856d6, 0x58b36f, 0x5d58a0, 0x5e0697, 0x689c6e, 0x6b5cd7, 0x6bd831, 0x6e1117, 0x71b957,
+    0x71ba4a, 0x78a3f2/7, 0x7abced, 0x7acfa0, 0x7c6bda, 0x7ebe32/3d, 0x7ec138, 0x84571f,
+    0x8ca890. Keep: 0x526003/2b/49/65+0x52715c (heap wrapper, benign with heapfix).
 
 ## Remaining roadmap
 0. **De-GS cosmetics pass (user explicitly wants this)**: GS's exe carries several cosmetic
