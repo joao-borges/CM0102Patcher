@@ -1,4 +1,64 @@
-# GSLP × May-2026 — Session State (2026-07-03)
+# GSLP × May-2026 — Session State (updated 2026-07-07)
+
+## ⭐ CURRENT WORK (start here): Option 3 — hardcoded WC-2026 finals field for 25/26
+
+**Strategic decision (user, 2026-07-07):** all three exe architectures for a native 25/26 WC
+dead-ended (details in the stockwc/bisect/port sections below). Agreed plan:
+(3) HARDCODE the WC-2026 finals participants on the proven-stable 2025 build, user picked the
+32 countries; → then (1) A5 packaging of the FINAL PRODUCTS; (2) port-manifest rebuild from
+A2 connected groups = future work.
+
+### The stable 25/26 base (everything applies to THIS build)
+- exe: `scratchpad/a4/cm0102_gs_reyear2025_noHAND_heapfix_nullg1.exe`
+  = GS exe re-yeared +3 (132 Nick sites, no hand anchors) + 11-site heapfix (cave 0x401b81)
+  + null-group guard (site 0x91df0c → cave 0x411c9f). Boots, world-gens, plays for days.
+  Only defect: WC-2026 draw (27/12/25 in-game) picks junk (GS's Euro+CONMEBOL qualifying
+  can't retro-generate mid-cycle; nullguard lets the draw run on empty state).
+- data: `scratchpad/d1_data` (transplant v14) staged via `tools/gslp_rebuild_d1.sh`.
+
+### User's 32 WC-2026 countries → nation indices (aligned in his+our tables; resolved in d1)
+UEFA(13): Portugal 150, Spain 172, France 70, Holland 84, Germany 74, England 61, Belgium 19,
+  Norway 139, Sweden 180, Croatia 48, Austria 12, Switzerland 181, Bosnia-Herzegovina 25
+CONMEBOL(5): Argentina 8, Brazil 27, Colombia 44, Ecuador 58, Paraguay 145
+CONCACAF(4): United States 196, Mexico 122, Canada 36, Haiti 83
+CAF(5): Cape Verde Islands 37, Morocco 126, Egypt 59, Ivory Coast 96, South Africa 170
+AFC(4): Japan 98, South Korea 171, Iraq 92, Saudi Arabia 160
+OFC(1): Australia 11
+
+### RE progress toward the patch (in the nullg1 exe)
+- Comp-index globals mapped via startup binder chain at VA ~0x610150 (name string pushed,
+  then `mov [0x9cf7xx], edi`): **0x9cf79c = FIFA World Cup**; zones: 0x9cf76c Oceania,
+  0x9cf770 CONCACAF, 0x9cf774 Asian, 0x9cf778 South American, 0x9cf77c African,
+  0x9cf780 European. compTable ptr = [0xadadfc] (comp obj = [[0xadadfc] + idx*4]).
+- **Finals reset/collect fn found at 0x92d330** (`this`=WC finals comp obj in ecx):
+  zeroes [esi+0x4c], then for each of the 6 zone comps calls `vtable+8` (their
+  collect/close), then `call 0x687970(0)`, then clears team count `[esi+0x3e]=0`,
+  frees [esi+0xba], clears [esi+0x45]. Candidate injection point: right after the six
+  vtable calls (0x92d3b1) or wherever the qualified teams are APPENDED to the finals list.
+- Comp/group object layout (from crash decodes): team count = word [obj+0x3e];
+  team list = [obj+0xa7], 6-byte entries (ref + flags, see 0x913df3: entry+5 = status byte);
+  second list = [obj+0xb1]; groups array = [obj+0xc] with idx bytes at [obj+0x100/0x101].
+- NEXT STEPS:
+  1. Find where a zone winner is APPENDED into the finals comp's team list (follow the zone
+     vtable+8 implementations, or refs to [0x9cf79c] at 0x920a5a/0x920a8a/0x920aa4 and
+     0x91fb2e/0x91fb79 — the 0x920axx cluster looks like "add qualified team(s)").
+     Understand the append format (6-byte entry: what ref? nation ID vs nat_club ptr/idx).
+  2. Patch: after zone collection (or at the append site), replace harvested set with the
+     32 hardcoded nation refs (table ~128B + loop ~40B; free VERIFIED-dead caves in this exe:
+     0x42a7d7(28B), 0x42d739(24B), 0x42d7a0(155B), 0x42d86f(236B), 0x42dba1(160B)).
+     Dedupe if engine force-adds holders (Argentina) / host.
+  3. Stage in GSTEST25 (exe + d1 v14), user tests: world-gen → 27/12/25 draw → field = the 32.
+  4. Validate the June-2026 WC actually schedules/plays, then A5 packaging.
+- ⚠ tooling gotcha: scratchpad had `bisect.py` which SHADOWED Python's stdlib `bisect`
+  (capstone imports it → scripts printed cluster lists and died). Renamed to `gsbisect.py`.
+  Never name scratchpad files after stdlib modules.
+
+## FINAL PRODUCT SHAPE (A5, after Option 3 lands)
+- Original + Patched 3.9.68 DBs: keep forever. May-2026 25/26 daily: UNCHANGED.
+- NEW "GSLP × May-2026" product: 2026-start = reyear2026_noHAND_heapfix + d1 v14 (VALIDATED);
+  2025-start (25/26 + June-2026 WC) = nullg1 + WC-field patch + d1 v14 (Option 3, in progress).
+
+# ——— original state doc (2026-07-03) + experiment log below ———
 
 ## ⚡ 2026-07-03 BREAKTHROUGH #2 — the 0x69BDB9/0x69F82E crash root cause (heap lie)
 GS redirected the five world-gen table redimension reallocs (staff/nonplayer/player/prefs/club,
