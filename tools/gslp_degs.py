@@ -62,6 +62,13 @@ CLUB_RENAME_PATCHES = [
     (0x5e0dc4, _cap('Miami Fusion FC', 16),     _cap('Philadelphia', 16)),  # 'Philadelphia Union' (19B) exceeds the 16B slot
 ]
 
+# ---- 7. stock window icon + mouse cursors: GS rebuilt the .rsrc section (big modern
+# icon/cursors, data in his exe-tail extension). Stock's whole resource block (directory +
+# icon/cursor data, 0x2000 bytes at file 0x6da000, same section VA 0x9e5000 and same group
+# IDs 102/104) is self-contained, so copying it over the section start restores everything;
+# GS's oversized resource data beyond it becomes orphaned (never referenced by the tree).
+RSRC_OFF, RSRC_LEN = 0x6da000, 0x2000
+
 # ---- 5. stock South American cups (user-approved: stock Libertadores 1st semester +
 # stock Mercosur engine driving his "Copa Sudamericana" record 2nd semester) ----
 # GS rewrote the conmebol_liber/merc/seeding engine bodies IN PLACE (file 0xc0c34-0xc694f)
@@ -114,10 +121,11 @@ def apply_sa_stock(data, stock):
     for a, b in SA_STOCK_RANGES:
         if bytes(data[a:b]) != stock[a:b]:
             data[a:b] = stock[a:b]; n += 1
-    assert struct.unpack_from('<I', data, YEAR_FIX_OFF)[0] == 2001
+    # accept 2001 (fresh revert) or yr (re-running on an already-reverted exe)
+    assert struct.unpack_from('<I', data, YEAR_FIX_OFF)[0] in (2001, yr)
     struct.pack_into('<I', data, YEAR_FIX_OFF, yr)
     for off in YEAR_FIX16_OFFS:
-        assert struct.unpack_from('<H', data, off)[0] == 2001, hex(off)
+        assert struct.unpack_from('<H', data, off)[0] in (2001, yr), hex(off)
         struct.pack_into('<H', data, off, yr)
     print(f'stock SA cups: {n} ranges reverted, year re-applied = {yr}')
 
@@ -147,6 +155,12 @@ def main(src, dst, sa=True):
         assert cur == old, f'unexpected club string @ {hex(off)}: {cur!r}'
         data[off:off+len(new)] = new
         applied += 1
+    if bytes(data[RSRC_OFF:RSRC_OFF+RSRC_LEN]) == stock[RSRC_OFF:RSRC_OFF+RSRC_LEN]:
+        skipped += 1
+    else:
+        data[RSRC_OFF:RSRC_OFF+RSRC_LEN] = stock[RSRC_OFF:RSRC_OFF+RSRC_LEN]
+        applied += 1
+        print('stock icon/cursor resources restored')
     if sa:
         apply_sa_stock(data, stock)
     else:
