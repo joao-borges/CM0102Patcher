@@ -35,6 +35,23 @@
   come from language.ldb (May-2026, Brazilian community) or DB record names. BLOCKED on
   user in-game examples (de-GS inventory).
 
+## 🔧 PLAYER-CLICK CRASH IN PACKAGED BUILD — FIXED (2026-07-08)
+User repro: packaged Starter Kit, 25/26 DB, manage Sao Paulo, click any player -> crash.
+Cause: the A5 "baked defaults" re-applied Nick patches on the GS exe. Verified against
+Patcher.cs tables: GS PRE-BAKED colouredattributes (hooks = Nick's bytes, cave 0x5660e8 =
+GS variant), disableunprotectedcontracts, 9-subs (IncreaseToNineSubs.patch bytes already
+in exe at 0x8f32d), regenfixes + forceloadallplayers (GS variants). HiddenAttributes.patch
+(= addadditionalcolumns) writes its cave at file 0x6dc000-0x6dd08a which in the GS exe is
+LIVE extended data (stock EOF is 0x6dc000) -> loader corrupts it, player screen reads it,
+crash. FIX (SK commit 10d59ba): GSLP ConfigLines now era-DB style (locked, written false);
+kept true/applied: HideNonPublicBids (site==stock, verified) + NoForeignRestrictionsForAll
+.patch (all old-bytes match). UnCap20s/NoWorkPermits/ChangeTo1280x800 = loader-INTERNAL
+tables (no source in repo) -> left off, unverifiable; user checks in-game whether uncap/
+permits behaviour is already GS-baked; if missing, RE the loader binary tables next.
+Hidden-attribute COLUMNS not available on GSLP (cave collision); porting = find/reserve
+free space in GSLP exes (e.g. appended section) + rebase the cave code = future work.
+Live bundle fixed in place (patches removed, both inis corrected) - retest = click player.
+
 ## ✅ HOLIDAY TEST PASSED (2026-07-07): 2025 product is LONG-SAVE SAFE
 User holidayed as Brazil NT to Sept 2026: WC-2026 played out (deeper-validation item
 CLOSED) and WC-2030 qualifier draw dates appear for ALL zones in 2026 — the never-run
