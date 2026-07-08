@@ -1,5 +1,19 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 🖼 ICON/CURSOR REVERT + ⚠ SCRATCHPAD DECAY (2026-07-08)
+- User report: game window icon = GSLP's. GS rebuilt .rsrc (2 big icons + modern cursors
+  in his +0x28000 tail; stock = small icons/cursors in 0x2000 at file 0x6da000, same
+  section VA 0x9e5000, same GROUP_ICON ids 102/104). degs step 7 copies stock's whole
+  0x2000 resource block back (also restores STOCK MOUSE CURSORS - consistent de-GS).
+- ⚠⚠ /private/tmp scratchpad (old session b09f8eb0) is being CLEANED by macOS: the 2026
+  base exe (cm0102_gs_reyear2026_noHAND_heapfix.exe) VANISHED mid-session. Everything
+  important ARCHIVED to ~/workspace/gslp-archive/ (a4 exes, gs_pristine_reconstructed.exe,
+  d1_data, gslp2023 source, a3_data25_trim, gsre, logs). USE THE ARCHIVE from now on;
+  gslp_rebuild_d1.sh paths still point at the old scratchpad - update before next rebuild.
+- degs is now IDEMPOTENT (year asserts accept already-reverted exes) - the 2026 exe was
+  rebuilt from its own previous output. Current builds: 2025 = 2a813573,
+  2026 = 532821c4 (staged GSTEST25/GSTEST + SK assets, SK exe rebuilt+installed).
+
 ## 🎛 UI SIMPLIFICATION (2026-07-08, user-requested) — SK commit 2a56e64
 Data Updates = Patched 3.9.68 + 25/26 + 26/27 + save/load custom only (Original +
 May-2026 DBs and their resources removed; exe 278→199 MB). NickPatcherMenu, PlayMenu,
