@@ -1,5 +1,11 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 🎛 UI SIMPLIFICATION (2026-07-08, user-requested) — SK commit 2a56e64
+Data Updates = Patched 3.9.68 + 25/26 + 26/27 + save/load custom only (Original +
+May-2026 DBs and their resources removed; exe 278→199 MB). NickPatcherMenu, PlayMenu,
+AndroidMenu forms DELETED — options are baked per-database, Play Game launches directly
+(default ini path only). Legacy DB marker files cleaned on switch. CLAUDE.md updated.
+
 ## 📦 A5 PACKAGING DONE (session 3) — Starter Kit built with both GSLP products
 - Starter Kit repo commits 5211197/7109a4f: two new built-in DBs "25/26 (2026)"
   (gslp_2526_database, cm0102_gslp2025.exe, Year 2025) and "26/27 (2027)"
