@@ -35,7 +35,17 @@
   come from language.ldb (May-2026, Brazilian community) or DB record names. BLOCKED on
   user in-game examples (de-GS inventory).
 
-## 🟠 KNOWN LIMITATION (2025 product) + PENDING HOLIDAY TEST: WC-2026 qualifiers
+## ✅ HOLIDAY TEST PASSED (2026-07-07): 2025 product is LONG-SAVE SAFE
+User holidayed as Brazil NT to Sept 2026: WC-2026 played out (deeper-validation item
+CLOSED) and WC-2030 qualifier draw dates appear for ALL zones in 2026 — the never-run
+2026 qual comps roll over cleanly. The dead-2026-quals-except-Asia issue is confirmed a
+one-season cosmetic blemish. Bundles RESTAGED after the test with the rename builds:
+GSTEST25 = 939023f3, GSTEST = 071fdae5, both Data = d1 v16 (new game needed for renames).
+REMAINING: packaged Starter Kit launch test (v1.2.2 dev bundle), de-GS inventory +
+pt-BR examples with user in-game, optional Philadelphia Union repoint, parked
+init-banner colour + Cup.cpp:1278 (2026-start).
+
+## 🟠 KNOWN LIMITATION (2025 product, confirmed cosmetic-only — see above): WC-2026 qualifiers
 User report (2026-07-07, in-game GSTEST25): WC-2026 qualifiers show no estimated draw
 dates for all zones EXCEPT Asia. Diagnosis: NOT an SA-fix regression (reverted year-table
 ranges reference only Americas club comps; zone globals 0x9cf76c-0x9cf780 untouched).
