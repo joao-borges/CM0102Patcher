@@ -1,5 +1,40 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 📦 A5 PACKAGING DONE (session 3) — Starter Kit built with both GSLP products
+- Starter Kit repo commits 5211197/7109a4f: two new built-in DBs "25/26 (2026)"
+  (gslp_2526_database, cm0102_gslp2025.exe, Year 2025) and "26/27 (2027)"
+  (gslp_2627_database, cm0102_gslp2026.exe, Year 2026), SHARED data/gslp_data.zip
+  (d1 v16, 21 MB — SetupDatabase now writes the marker file since a shared zip can't).
+- ConfigLines bake+lock: speed x4, coloured attrs, no unprotected contracts, hide bids,
+  regen fixes, load all players, UnCap20s, no work permits, 1280x800 ("1200x800" label is
+  an SK typo), currency 1.00 + Tapani-regen pinned false. 9 subs / hidden attrs / foreign
+  limits = patch FILES: SetupDatabase copies them to Game/Patches (removes on switch-away),
+  PatchFileDirectory forced to "Patches" for the Standard path (normalized back to "." for
+  non-GSLP DBs). ⚠ UNTESTED: whether every loader runtime patch lands cleanly on the GS
+  exe (GSTEST ran all-off + speed 4). First packaged-build session will tell.
+- CM Explorer 1.2 embedded (external/cmexplorer.zip), extracted on first use to
+  Game/CMExplorer, launched with Game/ as cwd; one-time note about uncompressed saves
+  (no loader ini option exists; in-game "Compress Save Game Files" must be unticked —
+  baking the default = game.cfg/exe RE, parked). NB CM Explorer is officially a CM 00/01
+  tool — treat as experimental on 01/02 saves.
+- Built with the Mono recipe (obj/x86/Release intermediates! — pre-generate resources
+  THERE, not obj/Release), 278 MB exe, installed into the v1.2.2 dev bundle + SharpZipLib
+  beside it. NOT launch-tested yet (user mid-holiday-test; Wineskin single-instance).
+- CLUB RENAMES DONE end-to-end (commit 68b9c13): stock MLS binder = long-name strcmp table
+  0x9e0ccc-0x9e0dd4 (NOT GS code); renamed in place (capacity = gap to next string):
+  Tampa Bay Mutiny→Los Angeles FC, Kansas City Wizards→Sporting KC, NY/NJ Metrostars→
+  New York Red Bulls, Miami Fusion FC→Philadelphia ("Philadelphia Union" 19B > 16B slot;
+  upgrade would need repointing the push at 0x616148 to a free ≥19B pad — none found near
+  the table). d1 v16 staleLong renames the club.dat side. Exes: 2025=939023f3,
+  2026=071fdae5. NEW GAME required (DB change). 26 more stale-long-name audit candidates
+  in rebuild log (logs/rebuild_v16.log).
+- ⚠ GSTEST bundles NOT restaged (user mid-holiday-test with 96d4d109/1a7945eb = WCC fix,
+  no renames). After the test: restage exes+Data from a4/ + d1_data, or rebuild via
+  gslp_rebuild_d1.sh (its step 6 stages GSTEST — do not run mid-test).
+- pt-BR hunt: d1 por.lng is byte-identical to stock (pt-PT) — the pt-BR fragments must
+  come from language.ldb (May-2026, Brazilian community) or DB record names. BLOCKED on
+  user in-game examples (de-GS inventory).
+
 ## 🟠 KNOWN LIMITATION (2025 product) + PENDING HOLIDAY TEST: WC-2026 qualifiers
 User report (2026-07-07, in-game GSTEST25): WC-2026 qualifiers show no estimated draw
 dates for all zones EXCEPT Asia. Diagnosis: NOT an SA-fix regression (reverted year-table
