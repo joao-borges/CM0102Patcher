@@ -1,5 +1,27 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 🏁 MILESTONE: WORKING VERSION SHIPPED (2026-07-08) — SK fce46fc / patcher 90c187d
+User-confirmed: stock icon OK, both years initialize (Brazil) with proper WC draws,
+CM Explorer working. Final round this session:
+- ChangeTo1280x800 + UnCap20s + NoWorkPermits ENABLED: verified against the actual
+  loader source (github nckstwrt/CM0102Loader, CM0102Loader.cpp): to1280x800 = 193 sites
+  + tapanispacemaker (5 sites, PRE-APPLIED in GSLP exes = idempotent) + bkg/mbr files
+  auto-extracted by the loader; uncap20s = 6x '9090' at 0x143624/0x1440B5/0x144357/
+  0x1443E1/0x144471/0x40807C; noworkpermits = 'eb' at 0x4c75f1. ALL sites == stock bytes
+  in both GSLP exes -> loader applies cleanly. (Uncap was NOT GS-baked after all.)
+- Philadelphia Union: push imm32 at file 0x216148 (VA 0x616148) repointed 0x9e0dc4 ->
+  0x9e7000 (file 0x6dc000 = head of GS's orphaned resource data, free after icon revert);
+  string written there; club.dat rec 7231 long name matched. degs handles both, no assert
+  on the orphaned area.
+- FINAL BUILDS: 2025 = fe818a48 (cm0102_gslp2025_final.exe), 2026 = 6ab596d7
+  (cm0102_gslp2026_final.exe), staged in GSTEST25/GSTEST/main bundle + SK assets;
+  main bundle Data/club.dat + both GSTEST Data refreshed; gslp_data.zip rebuilt.
+- SK repo PRUNED to the working product (era/May-2026 zips+exes, unused images, stale
+  accessors all gone; exe 199 MB, 11 resources).
+- Remaining niceties (all parked): pt-BR (user says FORGET), init-banner colour,
+  Cup.cpp:1278 (2026-start), hidden-attribute columns port, 26 stale-long-name audit
+  candidates. NEXT: user has new work planned post-milestone.
+
 ## 🖼 ICON/CURSOR REVERT + ⚠ SCRATCHPAD DECAY (2026-07-08)
 - User report: game window icon = GSLP's. GS rebuilt .rsrc (2 big icons + modern cursors
   in his +0x28000 tail; stock = small icons/cursors in 0x2000 at file 0x6da000, same
