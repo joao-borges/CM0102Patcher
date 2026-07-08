@@ -1,5 +1,13 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 🧹 DOWNLOADS CLEANUP (2026-07-08): GSTEST bundles DELETED
+GSTEST25.app + GSTEST.app removed (user request) after salvaging ALL saves to
+~/workspace/gslp-archive/saves/{gstest25,gstest26}/ (gstest25/xxxx.sav there is NEWER
+than the copy in the main bundle Game/). Also deleted: cmexplorer zip+dir, patcher
+2.25-2.27 tarballs, debug screenshots, cm0102.zip (dup of kept CM0102.iso). The ONLY
+remaining install = main bundle ~/Downloads/CM0102.Starter.Kit.Mac.v1.2.2/. Future
+in-game tests happen THERE (single-instance constraint now moot).
+
 ## 🏁 MILESTONE: WORKING VERSION SHIPPED (2026-07-08) — SK fce46fc / patcher 90c187d
 User-confirmed: stock icon OK, both years initialize (Brazil) with proper WC draws,
 CM Explorer working. Final round this session:
