@@ -1,5 +1,21 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 💾 SAVE↔DB COMPATIBILITY (2026-07-08) — analyzer + fixer built
+Saves EMBED their DB tables; the ACTIVE Data Update only decides WHICH EXE launches.
+Matching rule: exe start-year must match the save's product (2025-start saves -> "25/26
+(2026)" button; 2026-start -> "26/27 (2027)"; wrong year = crash). Pre-rename saves threw
+MLS binder index warnings (+ league.cpp complaint) against the renamed exe strings —
+FIXED by patching the 4 long names inside each save's club.dat block:
+tools/gslp_fixsave.py (uncompressed saves only; block table: hdr int==3, count@8,
+268B entries name@+8 pos@+0 size@+4; club recs 581B, long name @+4).
+World fingerprint by club count: 10722=GSLP d1, 11546=May-2026, 7012=stock 3.9.68.
+Current Game/ saves: 2222+xxxx+xxxx2 (GSLP 2025, fixed, use 25/26), xxxx_2026 (GSLP
+2026, fixed, use 26/27), lalala (current-gen 2025 career, Philadelphia Union upgraded),
+Joao.sav (May-2026 squads @2001-12-20 = pre-year-patch era, stock engine -> use
+Patched 3.9.68 button), test.sav (May-2026 25/26 world) + teste.sav (stock DB @2026) =
+NOT playable with shipped exes (need removed cm0102_2025/cm0102_2026 — resurrectable
+from git history if user wants). Pre-fix originals archived in gslp-archive/saves/.
+
 ## 🧹 DOWNLOADS CLEANUP (2026-07-08): GSTEST bundles DELETED
 GSTEST25.app + GSTEST.app removed (user request) after salvaging ALL saves to
 ~/workspace/gslp-archive/saves/{gstest25,gstest26}/ (gstest25/xxxx.sav there is NEWER
