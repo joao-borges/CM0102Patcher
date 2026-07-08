@@ -1,5 +1,29 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 🔁 POST-MILESTONE ROUND (2026-07-08 evening): options corrected, converter shipped
+- User report (hidden attrs/coloured/uncap "missing") exposed TWO wrong conclusions:
+  (1) the loader IGNORES .patch old-bytes and writes value@base+RVA (CM0102Loader.cpp
+  ApplyPatchFile: sscanf 3 parts, WriteByte(addr,part3)) -> the HiddenAttributes cave
+  writes .data BSS at VA 0xADC000 (zeros at runtime), NOT GS resource data; all its code
+  sites are GS==stock -> the patch is COMPATIBLE and is REINSTATED (GslpPatchFiles).
+  The original player-click crash re-attributed to the GS-variant overwrites (regen
+  fixes / load-all-players / possibly coloured cave) - those stay locked FALSE.
+  (2) .rsrc breaks the flat file==RVA mapping (raw 0x6da000 -> RVA 0x9e5000): the
+  Philadelphia binder push had been repointed to 0x9e7000 (RVA, = garbage in .data);
+  FIXED to VA 0xDE7000; degs accepts its own bad output as an old state. Exes:
+  2025 = dc3804f7, 2026 = d656dc9a (staged bundle + SK assets, SK rebuilt+installed).
+- Coloured attributes: GS pre-baked Nick's patch with a near-identical palette (cave
+  0x9660e8 code identical, palette 1 colour off); USER CONFIRMED colours render ->
+  ini stays false (baked). UnCap20s/1280x800/NoWorkPermits enabled earlier still stand.
+- ⚠⚠ ARCHIVE HOLE: gslp2023 (pristine GSLP Abril-23 download) was ALREADY GUTTED by
+  /tmp decay when archived - only fonts survived. NOT fatal: d1_data carries the whole
+  club/comp/league side untouched and re-transplants idempotently. If pristine is ever
+  needed, re-download the GSLP from the Brazilian community.
+- **tools/gslp_newdb.sh** (commit 308b58c): generalized converter - any stock-style DB
+  update -> GSLP-format Data (+--zip). Base = archive d1_data (GSLP_BASE overridable).
+  VALIDATED: May-2026 input reproduces shipped d1 (staff/index/officials/histories
+  IDENTICAL; club.dat differs by 4 pyramid-filler division bytes; match 10,154/11,546).
+
 ## 💾 SAVE↔DB COMPATIBILITY (2026-07-08) — analyzer + fixer built
 Saves EMBED their DB tables; the ACTIVE Data Update only decides WHICH EXE launches.
 Matching rule: exe start-year must match the save's product (2025-start saves -> "25/26
