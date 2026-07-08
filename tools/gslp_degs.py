@@ -60,9 +60,12 @@ CLUB_RENAME_PATCHES = [
     (0x5e0d44, _cap('NY/NJ Metrostars', 20),    _cap('New York Red Bulls', 20)),
     (0x5e0d98, _cap('Tampa Bay Mutiny', 20),    _cap('Los Angeles FC', 20)),
     # 'Philadelphia Union' (19B) exceeds the 16B 'Miami Fusion FC' slot, so the binder's
-    # push imm32 (VA 0x616148, the only ref) is repointed to VA 0x9e7000 = file 0x6dc000,
-    # the head of GS's orphaned resource data (unreferenced after the step-7 icon revert).
-    (0x216148, bytes.fromhex('c40d9e00'), bytes.fromhex('00709e00')),
+    # push imm32 (VA 0x616148, the only ref) is repointed into GS's orphaned resource raw
+    # data (unreferenced after the step-7 icon revert): file 0x6dc000 = .rsrc RVA 0x9e7000
+    # = VA 0xDE7000 (.rsrc breaks the flat file==RVA mapping - file base 0x6da000, RVA base
+    # 0x9e5000). An earlier build shipped the WRONG imm (0x9e7000, the RVA) - accept it as
+    # an old state so degs can repair its own output.
+    (0x216148, [bytes.fromhex('c40d9e00'), bytes.fromhex('00709e00')], bytes.fromhex('0070de00')),
 ]
 PHILLY_OFF = 0x6dc000
 PHILLY = b'Philadelphia Union\0'
@@ -154,10 +157,11 @@ def main(src, dst, sa=True):
         data[TITLE_OFF:TITLE_OFF+len(TITLE_GS)] = TITLE_ST.ljust(len(TITLE_GS), b'\0')
         applied += 1
     for off, old, new in CLUB_RENAME_PATCHES:
-        cur = data[off:off+len(old)]
+        olds = old if isinstance(old, list) else [old]
+        cur = data[off:off+len(new)]
         if cur == new:
             skipped += 1; continue
-        assert cur == old, f'unexpected club string @ {hex(off)}: {cur!r}'
+        assert any(cur[:len(o)] == o for o in olds), f'unexpected bytes @ {hex(off)}: {cur!r}'
         data[off:off+len(new)] = new
         applied += 1
     if bytes(data[RSRC_OFF:RSRC_OFF+RSRC_LEN]) == stock[RSRC_OFF:RSRC_OFF+RSRC_LEN]:
