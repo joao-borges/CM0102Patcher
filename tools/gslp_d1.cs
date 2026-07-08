@@ -272,7 +272,14 @@ class GslpD1 {
         // GS's binder references clubs BY LONG NAME (renaming LAFC/Sporting KC produced
         // TAMPA_BAY_MUTINY / KANSAS_CITY_WIZARDS index warnings at world-gen). Proper fix =
         // rename here AND patch the matching binder strings in his exe extension (cosmetics pass).
-        var staleLong=new Dictionary<string,string>{};
+        // Renames below are mirrored in the exe MLS binder table by gslp_degs.py
+        // CLUB_RENAME_PATCHES (strings must match byte-for-byte and fit the exe slots).
+        var staleLong=new Dictionary<string,string>{
+            {"Tampa Bay Mutiny|LAFC","Los Angeles FC"},
+            {"Kansas City Wizards|Sporting KC","Sporting KC"},
+            {"NY/NJ Metrostars|New York","New York Red Bulls"},
+            {"Miami Fusion FC|Philadelphia","Philadelphia"},
+        };
         for(int i=0;i<his.club.Count;i++){
             string k=S(his.club[i].Name)+"|"+S(his.club[i].ShortName);
             string fix;

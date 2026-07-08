@@ -44,6 +44,24 @@ TITLE_OFF = 0x6d9118            # file offset of GS's title string (VA 0xad9118)
 TITLE_GS  = b'CM 01/02 GS Leagues Patch - DB Abril 2023\0'
 TITLE_ST  = b'Championship Manager 01/02\0'
 
+# ---- 6. modern MLS club renames: the STOCK MLS engine binds clubs by LONG NAME via a
+# string table at VA 0x9e0ccc-0x9e0dd4 (one code ref each, strcmp chain ~0x6161xx).
+# The DB recycled these dead-franchise records for modern clubs (short names updated,
+# long names kept to satisfy the binder). Rename BOTH sides: these exe strings (in place,
+# capacity = distance to next string) and the club.dat long names (gslp_d1.cs staleLong).
+# (offset, old_bytes, new_bytes) padded to full capacity so leftover chars are cleared.
+def _cap(s, n):
+    b = s.encode()
+    assert len(b) < n, s
+    return b.ljust(n, b'\0')
+
+CLUB_RENAME_PATCHES = [
+    (0x5e0cf8, _cap('Kansas City Wizards', 20), _cap('Sporting KC', 20)),
+    (0x5e0d44, _cap('NY/NJ Metrostars', 20),    _cap('New York Red Bulls', 20)),
+    (0x5e0d98, _cap('Tampa Bay Mutiny', 20),    _cap('Los Angeles FC', 20)),
+    (0x5e0dc4, _cap('Miami Fusion FC', 16),     _cap('Philadelphia', 16)),  # 'Philadelphia Union' (19B) exceeds the 16B slot
+]
+
 # ---- 5. stock South American cups (user-approved: stock Libertadores 1st semester +
 # stock Mercosur engine driving his "Copa Sudamericana" record 2nd semester) ----
 # GS rewrote the conmebol_liber/merc/seeding engine bodies IN PLACE (file 0xc0c34-0xc694f)
@@ -121,6 +139,13 @@ def main(src, dst, sa=True):
     else:
         assert cur == TITLE_GS, f'unexpected title bytes: {cur!r}'
         data[TITLE_OFF:TITLE_OFF+len(TITLE_GS)] = TITLE_ST.ljust(len(TITLE_GS), b'\0')
+        applied += 1
+    for off, old, new in CLUB_RENAME_PATCHES:
+        cur = data[off:off+len(old)]
+        if cur == new:
+            skipped += 1; continue
+        assert cur == old, f'unexpected club string @ {hex(off)}: {cur!r}'
+        data[off:off+len(new)] = new
         applied += 1
     if sa:
         apply_sa_stock(data, stock)
