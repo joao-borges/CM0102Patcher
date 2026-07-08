@@ -1,5 +1,28 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 🟠 KNOWN LIMITATION (2025 product) + PENDING HOLIDAY TEST: WC-2026 qualifiers
+User report (2026-07-07, in-game GSTEST25): WC-2026 qualifiers show no estimated draw
+dates for all zones EXCEPT Asia. Diagnosis: NOT an SA-fix regression (reverted year-table
+ranges reference only Americas club comps; zone globals 0x9cf76c-0x9cf780 untouched).
+It is the inherent mid-cycle limitation: draws for UEFA (Dec 2024), CONMEBOL (league
+since 2023), CONCACAF/CAF/OFC are in the PAST at a July-2025 start and the engine cannot
+retro-generate them (the nullg1-round junk-draw evidence; stock 01/02 solved this by
+shipping half-played WC-2002 quals IN THE DB — our d1 has no such seed state). Asia works
+because its remaining rounds draw in autumn 2025 (future). Finals unaffected: field is
+hardcoded (wc32), 27/12/25 draw validated.
+GS cycle triggers use ABSOLUTE years ((Y-2003)%4 in cave2 0x966c8e, odd-year+2015 special
+at 0x966c43 = Copa America/Centenario; callers = 7× VA 0x430fe9-family + 0x5e0697), so
+WC-2030 (draws 2026-27, all future) is EXPECTED to schedule normally — unknown risk:
+whether the never-run 2026 qual comps roll over cleanly to the 2030 cycle.
+**PENDING USER HOLIDAY TEST (throwaway save, holiday continuously):**
+1. June-July 2026: WC-2026 finals play out with hardcoded field (also closes the
+   "deeper validation optional" item).
+2. 2027: WC-2030 qual draw dates appear for ALL zones (not just Asia) → 2025 product
+   safe for long saves; if still dateless → comps stuck, hunt the edition-rollover logic.
+3. Bonus: Euro 2028 schedules (same %4 family).
+Option if user wants 2026-cycle quals alive: DB-side seeding of pre-drawn groups
+(stock-01/02 style) — exploratory, significant d1 data engineering. Parked.
+
 ## 🟡 AWAITING USER TEST: SA-cups crash FIXED (World Club Cup construction restored)
 The 0x4C41AE world-gen crash is diagnosed and fixed; both bundles restaged with
 SA-reverted exes (Libertadores/Sudamericana stock engines + Intercontinental Cup back).
