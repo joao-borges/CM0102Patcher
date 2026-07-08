@@ -278,7 +278,7 @@ class GslpD1 {
             {"Tampa Bay Mutiny|LAFC","Los Angeles FC"},
             {"Kansas City Wizards|Sporting KC","Sporting KC"},
             {"NY/NJ Metrostars|New York","New York Red Bulls"},
-            {"Miami Fusion FC|Philadelphia","Philadelphia"},
+            {"Miami Fusion FC|Philadelphia","Philadelphia Union"},
         };
         for(int i=0;i<his.club.Count;i++){
             string k=S(his.club[i].Name)+"|"+S(his.club[i].ShortName);

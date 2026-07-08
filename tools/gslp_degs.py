@@ -59,8 +59,13 @@ CLUB_RENAME_PATCHES = [
     (0x5e0cf8, _cap('Kansas City Wizards', 20), _cap('Sporting KC', 20)),
     (0x5e0d44, _cap('NY/NJ Metrostars', 20),    _cap('New York Red Bulls', 20)),
     (0x5e0d98, _cap('Tampa Bay Mutiny', 20),    _cap('Los Angeles FC', 20)),
-    (0x5e0dc4, _cap('Miami Fusion FC', 16),     _cap('Philadelphia', 16)),  # 'Philadelphia Union' (19B) exceeds the 16B slot
+    # 'Philadelphia Union' (19B) exceeds the 16B 'Miami Fusion FC' slot, so the binder's
+    # push imm32 (VA 0x616148, the only ref) is repointed to VA 0x9e7000 = file 0x6dc000,
+    # the head of GS's orphaned resource data (unreferenced after the step-7 icon revert).
+    (0x216148, bytes.fromhex('c40d9e00'), bytes.fromhex('00709e00')),
 ]
+PHILLY_OFF = 0x6dc000
+PHILLY = b'Philadelphia Union\0'
 
 # ---- 7. stock window icon + mouse cursors: GS rebuilt the .rsrc section (big modern
 # icon/cursors, data in his exe-tail extension). Stock's whole resource block (directory +
@@ -161,6 +166,12 @@ def main(src, dst, sa=True):
         data[RSRC_OFF:RSRC_OFF+RSRC_LEN] = stock[RSRC_OFF:RSRC_OFF+RSRC_LEN]
         applied += 1
         print('stock icon/cursor resources restored')
+    if bytes(data[PHILLY_OFF:PHILLY_OFF+len(PHILLY)]) == PHILLY:
+        skipped += 1
+    else:
+        # no old-bytes assert: the target is orphaned GS resource data (contents vary)
+        data[PHILLY_OFF:PHILLY_OFF+len(PHILLY)] = PHILLY
+        applied += 1
     if sa:
         apply_sa_stock(data, stock)
     else:
