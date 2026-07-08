@@ -1,6 +1,259 @@
-# GSLP × May-2026 — Session State (updated 2026-07-07)
+# GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
-## ⭐ CURRENT WORK (start here): Option 3 — hardcoded WC-2026 finals field for 25/26
+## 🟡 AWAITING USER TEST: SA-cups crash FIXED (World Club Cup construction restored)
+The 0x4C41AE world-gen crash is diagnosed and fixed; both bundles restaged with
+SA-reverted exes (Libertadores/Sudamericana stock engines + Intercontinental Cup back).
+USER TEST (new game required — comp objects live in the save): world-gen completes →
+Copa Libertadores gets Feb fixtures, Sudamericana 2nd semester, Recopa still works,
+Brazil domestic unaffected; bonus: Intercontinental Cup final (Liber winner vs European
+champion) exists again.
+- STAGED: GSTEST25 exe = 96d4d109... (nullg1+wc32+degs+SA, year 2025),
+  GSTEST(2026) exe = 1a7945eb... (heapfix+degs+SA, year 2026).
+
+### Root cause (session-2 assumption was WRONG)
+[0x9cf6e4] is NOT a Mercosur global — the binder (strcmp chain, cases at 0x610d9a reached
+by `je` from 0x60fd41/0x60fd57) binds it to **"World Club Cup" / "Intercontinental Cup"**.
+The crashing reverted stock SA code (0x4c41a0-0x4c41eb) assigns the Libertadores winner
+into the Intercontinental-Cup pairing ([obj+0xa7] slots, continent-checked vs [0x9cfa1c])
+and vcalls [vtbl+0x5c] to schedule it. GS's intl-comp factory (fn ~0x82ff00-0x8312e0)
+KILLS that comp: `je→jmp` at VA 0x8311e7 skips the construction block, so
+compTable[[0x9cf6e4]] (table ptr at [0xadadfc]) stays NULL → esi==0 → fault at +0xA7.
+Stock SA region references NO other killed comp globals (only 0x9cf6e4; scan confirmed).
+
+### Factory map (VA, stock → GS) — decoded this session
+- [0x9cf7bc] "FIFA Club World Championship": ctor 0x929140 → GS redirects ctor to
+  0x5dc0e0 (his modern CWC engine). LIVE in GS — left untouched.
+- [0x9cf6e4] "World Club Cup"/"Intercontinental Cup": ctor 0x92b4b0, obj size 0xb2 —
+  GS skips construction (0x8311e7 je→jmp) + repoints the (dead) ctor call to 0x632080.
+  **RESTORED to stock** (see fix).
+- [0x9cf95c] "Inter-American Cup": stock ctor 0x632080 — GS skips inline (0x831253
+  je→jmp) and diverts 0x831295→cave 0x966c19 (stores NULL, pushes his own date args
+  29/10/2016, jmp back 0x8312a2). Left GS (stock SA code never reads 0x9cf95c).
+- [0x9cf964] block repurposed by GS to construct [0x9cf788] with ctor 0x929140. Left GS.
+- [0x9cf79c] = "FIFA World Cup", ctor 0x92bf50 — live in GS, shares the 0x92bxxx region;
+  do NOT blanket-revert that region.
+- Registration: generic pass at VA 0x838781 (GS-untouched) walks object lists
+  0xb63d6c..0xb64744 (+0x48 stride) and fills compTable[recIdx] for every non-NULL obj —
+  so restoring construction alone is sufficient; NULL slots are skipped.
+
+### The fix (gslp_degs.py apply_sa_stock, 7 new ranges + 2 imm16 year fixes)
+- file 0x4311e7: GS eb → stock 74 (re-enable construction block)
+- file 0x431217-0x43121b: ctor rel32 → stock 0x92b4b0
+- file 0x52b51a/0x52b528: 2 GS single-byte ctor field tweaks → stock
+- file 0x52b82f-0x52b832, 0x52b84a-0x52b84d: WCC fixture date bytes → stock
+- file 0x52b890-0x52badf: GS-rewritten ctor-helper fn 0x92b8b0 body → stock. Verified
+  DEAD in GS: only callers/refs are WCC-internal (0x92b53e ctor, 0x92be50, 0x92bbd0/07);
+  vtable 0x971250 only installed by the dead ctor. WCC vtable methods 0x92b680/0x92b770/
+  0x92bda0/0x92c1b0 are otherwise byte-identical to stock. Shared vcall target 0x5223a0
+  (vtbl+0x5c) has GS bounds/null-guard edits — LEFT GS (defensive superset, live for all
+  comps).
+- YEAR_FIX16_OFFS = [0x52b974, 0x52baa0]: `cmp word [rec+0x40], 2001` first-season checks
+  inside the restored helper → re-armed to target year (2025/2026), same auto-detect as
+  YEAR_FIX_OFF.
+- ⚠ cave notes: 0x42d6af-0x42d7a0 is NOT safely orphaned even after the SA revert — live
+  GS Recopa code at 0x6320b0 jumps to 0x42d777 and jump-table dwords at 0x5175xx point at
+  0x42d6c0/0x42d715/0x42d74d/0x42d779. Never allocate there. Also: no int3/nop pad ≥30B
+  exists anywhere in .text that is identical across stock+both re-year exes (scanned).
+- If user test still crashes: re-run the same diagnosis — fault offset picks the field,
+  scan stock SA region for the comp global, decode its binder name via the strcmp chain,
+  check its factory block for je→jmp kills. All tooling patterns in this file.
+
+## Working-state summary for a fresh session (2026-07-07 end)
+- 25/26 product (GSTEST25): WC-2026 hardcoded field VALIDATED in-game; cosmetics DONE:
+  stock art/splash/colour.dat/backgrounds (d1 pipeline), stock window title, stock
+  scoreboard layout, squad-number dot, alphabetical (SHORT-name) club lists, club glitch
+  fixes (Fluminense/América-RN/São Caetano pins + matcher upgrades, match rate 10,153).
+  pt-PT confirmed OK. PENDING: SA-cups in-game validation (fix staged, see top), then
+  club renames+binder, init-banner colour (minor, parked), "de-GS inventory" with user
+  in-game.
+- 2026 product (GSTEST): same Data + degs exe with the fixed SA revert (1a7945eb...).
+- A5 packaging requirements recorded below (Nick's options baked via ConfigLines,
+  CM Explorer 1.2 bundling + uncompressed saves).
+
+## ✅✅ OPTION 3 VALIDATED IN-GAME (2026-07-07): user played GSTEST25 (wc32 exe + d1 v14):
+no cpp asserts, no index warnings, 27/12/25 WC draw = exactly the 32 teams/groups below.
+**25/26 core is DONE.** Remaining: (a) optional deeper validation — sim to June-July 2026,
+WC actually plays out; (b) COSMETICS pass (inventory in "Known cosmetics" + de-GS section);
+(c) A5 packaging of both final products into the Starter Kit.
+
+## 🎨 COSMETICS PASS (2026-07-07, session 2) — user-approved scope + findings
+
+User wants ALL of: (1) alphabetical club lists, (2) de-GS art/title (splash + main-menu
+banner/background + stock window title), (3) modern club renames, (4) Cup.cpp:1278 (2026-start
+only — did NOT fire at 2025-start), (5) match-screen score boxes back to stock right-aligned
+layout (GS centred them — see ~/Downloads/game.png vs scoreright.jpg), (6) pt-BR translation
+fragments → pt-PT everywhere (stock had only pt-PT; source of pt-BR strings not yet located).
+
+### Round 3: init-screen title bar was yellow/green, stock = white-on-red. FIXED (staged):
+- The bar is a STOCK widget; GS changed ONE byte in its setup (VA 0x5d8c8c:
+  `mov byte [esi+0x49], 6→7` = bg colour red→yellow; green text = contrast over yellow).
+  Reverted to 6 = gslp_wc32.py step 4. Nearby diffs 0x5d76ce/0x5d85e0 (call 0x43f7f0→0x43f717)
+  are GS's CURRENCY hook (trampoline in stock nop-pad → cave 0x966a00; bisect: do NOT cut).
+- GS colour.dat ≈ May-2026 colour.dat (near-identical modern palette) — both non-stock;
+  stock palette already staged in round 2.
+- GS root .fnt files = stock (SAME); his Fonts/*.ttf extras are irrelevant to banner.
+- GS exe tail (+0x28000 vs stock) is data tables, NOT an embedded banner image; no cave
+  refs to the title string — banner is drawn, not blitted.
+
+### Round 7: LIBERTADORES FIX — stock SA cup engines restored (user-approved) — STAGED BOTH
+- Bug: GS's rewritten Libertadores/Sudamericana never schedules at re-yeared starts.
+  User accepts STOCK behaviour (Liber 1st semester, Mercosur-engine 2nd semester).
+- GS rewrote conmebol_liber/merc/seeding.cpp engine BODIES IN PLACE (file 0xc0c34-0xc694f,
+  52 clusters) + Americas comp-year-table logic (file 0x4317xx-0x431b2x) + a code block in
+  former padding at 0x42d6af-0x42d7a0 reached via cave2 (0x831711→0x966ebb→0x42d6af/700).
+  Call graph = stock-identical (bodies swapped only). His repurposed INTER-AMERICAN CUP slot
+  (0x632480 ctor, pairs Liber+Sudamericana records) = his Recopa; left intact. Also left:
+  ger_lge_cup/intertoto/ire_* repurposed engines (unknown GS features, not SA-scheduling).
+- **gslp_degs.py step 5 `apply_sa_stock`**: copies 60 byte-ranges from the repo stock exe
+  (external/Files/cm0102.exe), skips re-yeared year singles (e9/d1), re-applies target year
+  at the one in-range year imm (push 2001 @0x4318ad), year auto-detected from imm16
+  @0x431608 (2025/2026 ✓ both). Binder safe: GS renamed lookup strings IN PLACE
+  ("Copa Libertadores" @0x9dbae8, "Copa Sudamericana" @0x9db7dc = old Mercosur slot) so
+  stock globals ([0x9cf63c] Liber, [0x9cf6e4] Merc) bind his DB records.
+- ⚠⚠ CAVE LIST CORRECTION: 0x42d739/0x42d7a0 "verified-dead" caves are WRONG — GS code
+  LIVES at 0x42d6af-0x42d7a0 (now orphaned by this revert, but never allocate there
+  on non-SA-reverted builds). Safe caves actually used so far: 0x401b81 (heapfix),
+  0x411c9f (nullguard). WC32 uses immediates, no caves.
+- STAGED: GSTEST25 = 970f97af..., GSTEST(2026) = 45b52e50... TEST (new game not needed for
+  exe-only change… but Libertadores state is in the save's comp objects → NEW GAME to see
+  the fix): world-gen → check Copa Libertadores gets fixtures Feb 2026, Sudamericana 2nd
+  半 semester, Recopa still works, and Brazil domestic unaffected.
+
+### Round 6: SHORT-NAME sort + squad-number dot + de-GS split into shared tool — STAGED BOTH
+- Long-name sort LOOKED unsorted in-game (list screens display SHORT names; the pre-season
+  league table = record order). gslp_sortclubs.cs now sorts by SHORT name (deaccented,
+  long-name tiebreak). Verified: Série A = Athletico Paranaense..Vasco alphabetical.
+- "Missing dot" (user shot no_dot.png): GS edited the player-header format strings at file
+  0x6856b3/0x6856eb: stock '<%d - squad number>. <%s - player>' — he hid the dot inside the
+  token comment. Reverted.
+- **NEW tools/gslp_degs.py** — ALL de-GS cosmetic patches (title string, title-bar colour
+  byte, 19-cluster scoreboard revert + MLS checks, squad-number dot) with per-site asserts;
+  applies cleanly to ANY GS re-year variant (23 patches OK on both 2025-nullg1-wc32 and
+  2026-heapfix). gslp_wc32.py = WC-field only now; chain: nullg1 -> wc32 -> degs.
+- STAGED: GSTEST25 exe = nullg1_wc32_degs (c5621183...), GSTEST(2026) exe =
+  reyear2026_noHAND_heapfix_degs (e2050925...) — 2026 build now ALSO has scoreboard/title/
+  dot fixes. Both Data = d1 v15 + short-name sort. New games only for DB changes; exe
+  cosmetics apply to the running 2026 save immediately.
+
+### Round 5 (d1 v15): CLUB SORT + matcher fixes + user club glitches — REBUILT & STAGED BOTH
+- User-reported (playing 2026): Fluminense divisionless (São Bento wrongly in Série A),
+  Azuriz filler in pyramid, AD São Caetano + América-RN missing from pyramid.
+- gslp_d1.cs fixes: (a) HANDMATCH dict ('Fluminense Football Club'→'Fluminense',
+  'América FC'→'América Futebol Clube (RN)'); (b) GENERAL: adopt state from ShortName when
+  long name stateless (fixed the whole América (XX) class — match rate 9,760→10,153,
+  injectivity drops 164→97); (c) U20/senior never cross-contain in containment fallback;
+  (d) PIN dict: 'AD São Caetano (SP)'→Série D even with empty squad (engine grey-gens;
+  evicted unmatched filler Retrô-PE; div 270 now has exactly 1 empty-squad club — WATCH
+  world-gen on next new game).
+- **tools/gslp_sortclubs.cs (NEW, pipeline step 4.6)**: physical alphabetical club.dat sort
+  (deaccented, empty names last), ID=index re-stamped, remaps Rival1-3, staff.ClubJob,
+  prefs Fav/DisClubs×6, staff_history.ClubID, club_comp_history Winners/RunnersUp/Third/Host.
+  nat_club untouched. Safe because GS binds clubs BY LONG NAME. Verified: lists alphabetical.
+- Verified post-rebuild: Fluminense Série A squad 42; América-RN Série C squad 37;
+  São Caetano Série D; Azuriz back in state league; A/B/C/D = 20/20/20/36.
+- STAGED: GSTEST (2026, via pipeline; exe untouched) + GSTEST25 (rsync; wc32 exe kept).
+  NB fixes apply to NEW games only (running saves embed the old DB).
+
+### Round 4: SCOREBOARD REVERTED (staged); banner parked as minor; hook maps complete.
+- Init banner still yellow/green after byte revert — user says MINOR, parked. (Byte 0x5d8c8c
+  kept at stock 6; colour must come from elsewhere.)
+- **Match-screen scoreboard → stock: DONE** (gslp_wc32.py step 5, 19 clusters). Anchor:
+  "HT <%d..>" fmt @0xa16714 ref 0x71ca5b; GS had moved score-box x-coords, cave-hooked two
+  element builds (0x71b954/0x71ba44 → cave2 0x966ae3ff), and nopped the 4 MLS special-case
+  checks (cmp ecx,[0x9cf590]='American Major League' → cmp ecx,-1). All reverted to stock
+  bytes. Nick year site 0x31B3E1 verified NOT in any cluster. NEEDS USER TEST (play a match).
+- **Complete GS hook maps built** (this session): cave2 0x966800: 18 entries with stock hook
+  sites (incl. 0x966c31 ←7× 0x43xxxx comp-year family; 0x966c8e = %4 phase code with
+  `sub 0x7d3` — GS's own year constant, re-year never touches caves). cave1 0x601a00:
+  ~55 entries; notable externals: 0x601d40←0x84571f/0x84621d, 0x601ff0←0x689c6e/0x7ebe32/
+  0x7ec138, 0x602208←0x8ca890, 0x602700←0x7acfa0 (regen/attr code), 0x602b42←0x7abced,
+  0x602de4←0x8426c8/f7, 0x602e38←0x7c6bda, 0x602e90←0x5d58a0/0x6bd831/0x6e1117.
+- "7." prefix: NOT a shared fmt string ('%d. ' refs identical), NOT obvious in caves.
+  Need user screenshot of the exact screen to anchor. NEXT.
+
+### Round 2 (after user feedback "not original look"): pt-PT confirmed OK, title OK.
+- Splash/art: May-2026 RGNs are champman0102.net update splashes — ALSO not original.
+  Swapped to TRUE stock 3.9.68 art from repo data/patched_data.zip (pipeline step 5.5 now
+  unzips stock art incl. colour.dat into $W/stock_art).
+- **COLOUR SCHEME ROOT CAUSE: colour.dat.** May-2026's palette rewrites 26/34 named colours
+  (all UI Blues/Purples etc). Reverted to STOCK colour.dat (pipeline no longer copies
+  $OURS/colour.dat). GS's colour.dat also ≠ stock; stock now overwrites either way.
+- game.mbr decoded: 90×600 16bpp dark sidebar strip (not the photo backgrounds).
+  Photo backgrounds = Game/Pictures/*.RGN (stock in GSTEST25, identical to main install) +
+  in-game "Background Changes" option. mbr string refs identical stock vs GS (unhooked).
+- STAGED: stock art + stock colour.dat in GSTEST25 Data + d1_data; exe unchanged this round.
+- If look STILL off after this → GS-drawn UI elements in exe (score boxes etc.) — get
+  user screenshots and diff A2 display clusters.
+
+### DONE (staged in GSTEST25, art also added to gslp_rebuild_d1.sh step 5.5):
+- **Art mechanism decoded**: GS repainted the splash-family RGNs (logo/si/kio/savechip/eidos,
+  all 960048 B = 800×600 RGB565 + 48 B header; PIL renders in scratchpad wc/*.png) and
+  DELETED game.mbr/match.mbr → engine falls back to loose Data/*.rgn as menu/match backgrounds
+  (his "fundo GSLP.rgn" goal-net photo + GSLP.rgn splash). His exe also has a GS-added
+  club→background table (spfc.RGN etc. @file 0x58e034) pointing at an Escudos folder we don't
+  ship. FIX (data-only): restore May-2026 RGNs + stock game.mbr/match.mbr, delete his 2 files.
+- **Window title**: all ~30 window-creation pushes reference GS's string at VA 0xad9118 (his
+  .data cave) — overwrote string content in place → "Championship Manager 01/02" fixes all
+  refs at once. Now part of tools/gslp_wc32.py (step 3, asserts old bytes).
+- NB if the yellow menu banner still shows after this art restore, it's drawn by his cave
+  code — hunt refs into 0xab2000-0xada000 from the menu-draw path next.
+
+### TODO (cosmetics, in rough order):
+- Score-box layout revert (middle → right): find in A2 delta clusters near match-screen UI.
+- "7." squad-number prefix revert (attribute screens).
+- pt-BR strings: first LOCATE source — his exe caves? his .lng files? his events_por.cfg?
+  (d1 keeps his eng.lng/por.lng etc + our language.ldb; user plays in Portuguese.)
+- Alphabetical club lists: physical re-sort club.dat + full club-ref remap in gslp_d1.
+- Modern club renames (LAFC/Sporting KC...): rename data + patch his LONG-NAME binder strings.
+- Cup.cpp:1278: 2026-start product only.
+
+## 📦 A5 PACKAGING REQUIREMENTS (user, 2026-07-07)
+- **Nick's Patcher NOT needed working** for the two GSLP products. Both must ship with ALL of
+  these enabled by default (via Database.ConfigLines force+lock, values applied by
+  CM0102Loader from the ini): game speed x4, coloured attributes, resolution 1280x1024(?
+  user said "1200" — confirm exact patcher option), regen fixes, remove work permits, hide
+  non-public bids, 9 subs, disable unprotected contracts, remove foreign limits, load all
+  players, uncap attributes + show hidden.
+- **Bundle CM Explorer 1.2** (~/Downloads/cmexplorer1_2.zip; freeware, redistribution allowed;
+  single PE32 exe + docs): launchable from a button (RunExternalProcess, like editor/CM Scout)
+  to browse/edit saved games. ⚠ requires UNCOMPRESSED saves — ensure save-compression off by
+  default in the loader ini if such a line exists.
+
+## ⭐⭐ 2026-07-07 (session 2): OPTION 3 PATCH BUILT + STAGED — user test PASSED (see above)
+
+**Breakthrough: the stock engine already contains a hardcoded-finals mechanism.** The WC pool
+builder 0x92e940 (called only from draw fn 0x92e7f0, whose only caller is 0x92f20e) ends with
+`cmp word [compObj+0x40], 2002` (imm16 at **0x92eb4a**): if the WC year == 2002 it OVERWRITES
+all 32 pool slots with binder-resolved nation globals (the real 2002 field, in group order
+A1..H4), then rewrites the comp team list [obj+0x14] itself: 6-byte entries (club_rec_ptr +
+status 6), **groups assigned sequentially slot/4**, slot 0 = holders (entry status 2),
+slots 12 & 28 = hosts (status 1; stock = Korea/Japan), team count [obj+0x36] = 32, ret.
+Junk qualifying state is fully bypassed — no cave, no new code needed.
+
+**Patch (built by `tools/gslp_wc32.py`, 129 bytes, all inside the dormant block):**
+- imm16 0x7d2→0x7ea at 0x92eb4a (fires at 2026).
+- each of the 32 `a1 imm32` (mov eax,[nation_global]) → `b8 imm32` (mov eax, nation_index),
+  indices verified by name against d1 nation.dat (all 32 OK; nation rec = 290 B, name at +4,
+  rec[0] = nat-club idx; 0x53b3d0(nation_rec) → club_rec ptr, 581 B stride; pool ref = [club_rec]).
+- Slot order = FIXED GROUPS (user can reorder FIELD list in gslp_wc32.py and rebuild):
+  A: Argentina(holders), Croatia, Bosnia, Egypt · B: Spain, Norway, Colombia, Iraq
+  C: France, Austria, Ecuador, South Africa · D: **USA(host,slot12)**, Portugal, Paraguay, Ivory Coast
+  E: Brazil, Holland, Saudi Arabia, Haiti · F: England, Switzerland, Morocco, Australia
+  G: Germany, Sweden, South Korea, Canada · H: **Mexico(host,slot28)**, Belgium, Cape Verde, Japan
+- Output: `a4/cm0102_gs_reyear2025_noHAND_heapfix_nullg1_wc32.exe` (base = nullg1, unchanged
+  elsewhere). NOTE: builder ran from new scratchpad `.../01d18f8b-*/scratchpad/wc/` (nullg1.exe,
+  gsdis.py disasm helper, build_wc32.py); committed copy = tools/gslp_wc32.py.
+
+**STAGED in GSTEST25**: cm0102.exe = wc32 exe (md5 c20559a80d24eba4cdf515c816af6ae9) +
+Data restaged to d1 v14 (rsync --delete; port-G leftovers removed), log truncated.
+**USER TEST**: close all other Wineskin apps → GSTEST25 → new game Brazil → run to 27/12/25
+draw → WC field must be exactly the 32 above with those groups; hosts USA/Mexico, holders
+Argentina. Then continue to June 2026: WC must schedule and play. If crash: grep
+LastRunWine.log for "page fault".
+- Stdlib-shadowing gotcha struck again: I named the disasm helper `dis.py` (shadows stdlib
+  `dis`, breaks capstone import) — renamed `gsdis.py`. NEVER stdlib names in scratchpad.
+
+## Option 3 background (session 1): decision + RE that led here
 
 **Strategic decision (user, 2026-07-07):** all three exe architectures for a native 25/26 WC
 dead-ended (details in the stockwc/bisect/port sections below). Agreed plan:

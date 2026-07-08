@@ -15,8 +15,8 @@ echo "== 2. swap in our staff-side files"
 for f in staff.dat staff_history.dat staff_comp_history.dat first_names.dat second_names.dat common_names.dat officials.dat player_setup.cfg; do
   cp "$OURS/$f" "$W/d1_data/$f"
 done
-# cosmetic side: May-2026 colour definitions (aligned 34-entry table, updated RGBs)
-cp "$OURS/colour.dat" "$W/d1_data/colour.dat"
+# colour.dat: STOCK palette (user wants original UI scheme; May-2026's changes 26/34
+# named colours incl. all UI Blues/Purples). Stock copy extracted in step 5.5 below.
 
 echo "== 3. swap index.dat entries (10)"
 python3 - "$W/d1_data/index.dat" "$OURS/index.dat" <<'EOF'
@@ -63,8 +63,23 @@ echo "== 4. compile + run gslp_d1"
 mcs "$P/tools/gslp_d1.cs" -r:"$P/bin/Release/CM0102Patcher.exe" -out:"$W/gslp_d1.exe" 2>&1 | grep -v warning || true
 MONO_PATH="$P/bin/Release" mono "$W/gslp_d1.exe" "$W/d1_data" "$OURS"
 
+echo "== 4.6 alphabetical club sort (cosmetics: game lists clubs in record order)"
+mcs "$P/tools/gslp_sortclubs.cs" -r:"$P/bin/Release/CM0102Patcher.exe" -out:"$W/gslp_sortclubs.exe" 2>&1 | grep -v warning || true
+MONO_PATH="$P/bin/Release" mono "$W/gslp_sortclubs.exe" "$W/d1_data"
+
 echo "== 5. language.ldb (May-2026 one: modern nation names e.g. Netherlands)"
 cp "$OURS/language.ldb" "$W/d1_data/language.ldb"
+
+echo "== 5.5 de-GS art: TRUE stock 3.9.68 splash/logo/backgrounds (user wants original look)"
+# GS repainted the splash-family RGNs and DELETED game.mbr/match.mbr. May-2026's RGNs are
+# champman0102.net update splashes, ALSO not original — pull stock art from the repo zip.
+STOCKART="$W/stock_art"
+mkdir -p "$STOCKART"
+unzip -o -q -j /Users/joaoborges/workspace/CM0102-Starter-Kit/data/patched_data.zip \
+  logo.rgn si.rgn kio.rgn savechip.rgn eidos.rgn default_pic.rgn game.mbr match.mbr \
+  colour.dat -d "$STOCKART"
+cp "$STOCKART/"* "$W/d1_data/"
+rm -f "$W/d1_data/GSLP.rgn" "$W/d1_data/fundo GSLP.rgn"
 
 echo "== 6. stage into GSTEST"
 rsync -a --delete "$W/d1_data/" "$GAME/Data/"

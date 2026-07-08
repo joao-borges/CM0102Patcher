@@ -90,12 +90,36 @@ class GslpD1 {
                 hisByShort[sk].Add(i);
             }
         }
+        // hand-verified pairs (our exact long name -> his exact long name); user-reported
+        // crossings the heuristics can't resolve (2026-07: Fluminense ambiguous vs U20/de
+        // Feira/EC(PI); América FC stateless long name collided into his (MG) record)
+        var HANDMATCH=new Dictionary<string,string>{
+            {"Fluminense Football Club","Fluminense"},
+            {"América FC","América Futebol Clube (RN)"},
+        };
+        var hisByExactName=new Dictionary<string,int>();
+        for(int i=0;i<his.club.Count;i++) if(!hisByExactName.ContainsKey(S(his.club[i].Name))) hisByExactName[S(his.club[i].Name)]=i;
+
         var ourToHis=new int[ours.club.Count];
-        int matched=0, contained=0, shortFixed=0, shortMatched=0;
+        int matched=0, contained=0, shortFixed=0, shortMatched=0, handMatched=0;
         for(int i=0;i<ours.club.Count;i++){
             ourToHis[i]=-1;
+            string handHis;
+            if(HANDMATCH.TryGetValue(S(ours.club[i].Name),out handHis)){
+                int hh;
+                if(hisByExactName.TryGetValue(handHis,out hh)){
+                    ourToHis[i]=hh; matched++; handMatched++;
+                    Console.WriteLine("  hand match: '"+S(ours.club[i].Name)+"' -> his '"+handHis+"' ["+hh+"]");
+                    continue;
+                }
+                Console.WriteLine("  WARNING hand match target missing: '"+handHis+"'");
+            }
             var ok=Key(S(ours.club[i].Name));
             var osk=Key(S(ours.club[i].ShortName)).Item1;
+            // stateless long name + state-suffixed short name (e.g. 'América FC' / 'América (RN)'):
+            // adopt the short name's state so the state ranking can disambiguate his (MG)/(PE)/(RN)
+            var shortState=Key(S(ours.club[i].ShortName)).Item2;
+            if(ok.Item2=="" && shortState!="") ok=Tuple.Create(ok.Item1,shortState);
             // nation guard: nation tables are aligned 1:1 (verified above), so a match is only
             // valid within the same nation — kills cross-nation crossings (Al-Ahli SYR vs QAT etc.).
             // Our DB deactivates dead clubs with Nation=-1; only enforce when BOTH sides are valid.
@@ -132,11 +156,15 @@ class GslpD1 {
             if(shortHit>=0){ ourToHis[i]=shortHit; matched++; shortMatched++; continue; }
             // containment fallback: unique his key that contains/is contained by ours, state-consistent, len>=8
             if(ok.Item1.Length>=8){
+                bool ourU20=ok.Item1.EndsWith(" u20");
                 int hit=-1, hits=0;
                 for(int c=0;c<hisKeys.Count;c++){
                     if(!natOK(c)) continue;
                     var hk=hisKeys[c];
                     if(ok.Item2!="" && hk.Item2!="" && hk.Item2!=ok.Item2) continue;
+                    // U20/senior never cross-contain (his 'Fluminense Football Club U20' must not
+                    // block senior 'Fluminense Football Club' from containing his 'Fluminense')
+                    if(hk.Item1.EndsWith(" u20")!=ourU20) continue;
                     if(hk.Item1.Length>=8 && ((" "+hk.Item1+" ").Contains(" "+ok.Item1+" ")||(" "+ok.Item1+" ").Contains(" "+hk.Item1+" "))){ hit=c; hits++; if(hits>1)break; }
                 }
                 if(hits==1){ ourToHis[i]=hit; matched++; contained++; }
@@ -334,6 +362,23 @@ class GslpD1 {
             }
         }
         Console.WriteLine("empty-squad pyramid swaps: "+swapped);
+
+        // user-pinned pyramid placements (2026-07): these clubs must be in the pyramid even
+        // with an empty squad (engine grey-gens players). Evict the weakest filler to fit.
+        var PIN=new Dictionary<string,int>{ {"AD São Caetano (SP)",270} };   // 270 = Série D
+        foreach(var pin in PIN){
+            int pi=Enumerable.Range(0,his.club.Count).Where(k=>S(his.club[k].Name)==pin.Key && his.club[k].Nation==brazilHis).Cast<int?>().FirstOrDefault() ?? -1;
+            if(pi<0){ Console.WriteLine("  WARNING pin not found: '"+pin.Key+"'"); continue; }
+            if(pyramid.Contains(his.club[pi].Division)){ Console.WriteLine("  pin already placed: '"+pin.Key+"'"); continue; }
+            var evict=Enumerable.Range(0,his.club.Count).Where(k=>
+                    his.club[k].Nation==brazilHis && his.club[k].Division==pin.Value && !PIN.ContainsKey(S(his.club[k].Name)))
+                .OrderBy(k=>hisToOur[k]>=0?1:0)                              // unmatched fillers first
+                .ThenBy(k=>his.club[k].Reputation).Cast<int?>().FirstOrDefault();
+            if(!evict.HasValue){ Console.WriteLine("  WARNING pin eviction failed for '"+pin.Key+"'"); continue; }
+            his.club[evict.Value].Division=357;
+            his.club[pi].Division=pin.Value;
+            Console.WriteLine("  pinned '"+pin.Key+"' into div "+pin.Value+" (evicted '"+S(his.club[evict.Value].Name)+"')");
+        }
         foreach(var div in pyramid)
             Console.WriteLine("  div "+div+": "+his.club.Count(c=>c.Nation==brazilHis&&c.Division==div)+" clubs, empty-squad: "+his.club.Count(c=>c.Nation==brazilHis&&c.Division==div&&c.Squad.All(x=>x<0)));
 
