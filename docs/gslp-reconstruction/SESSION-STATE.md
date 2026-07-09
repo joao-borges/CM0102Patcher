@@ -1,20 +1,45 @@
 # ⏩ CONTINUE HERE (session handoff, 2026-07-08 end)
 
+## 🔎 HIDDEN-ATTRIBUTE COLUMNS PORTED (2026-07-08 late) — awaiting user in-game test
+The parked "hidden-attr columns port" is DONE without any RE of GS screens. Root cause of
+the old crash finally nailed: the loader-applied HiddenAttributes.patch could NEVER work —
+CM0102Loader writes at base+RVA, so the cave bytes land at VA 0xADC000 (.data BSS that the
+GS engine uses at runtime → corruption) while the hook at 0x47a86a jumps to VA 0xDE7000
+(the patch was authored for Nick's-Patcher-style FILE-offset application: file 0x6dc000 →
+RVA 0x9e7000 → VA 0xDE7000, because .rsrc raw 0x6da000 maps to RVA 0x9e5000).
+Fix = **bake at file offsets** into the GSLP exes (`tools/gslp_hiddencols.py`, idempotent):
+- verified: all 35 code sites GS==stock (the 14 GS diffs in the hook fn = his baked
+  coloured-attr hooks, zero overlap); only live ref into RVA 0x9e7000+ was our own
+  Philadelphia Union string. NB the shipped .patch old-byte column is STALE at 0x47acb7/
+  0x47acc8 (says 2e/08, stock=24/06 — confirmed by Patcher.cs's unpatch table).
+- Philadelphia Union string moved 0xDE7000 → 0xDE80A0 (push imm32 at file 0x216147 repointed);
+  cave code+strings written at file 0x6dc000-0x6dd08a (region zeroed first — gaps must be 00);
+  .rsrc characteristics 40000040 → E0000040 (RWX: cave executes from .rsrc AND self-writes
+  its flag byte at VA 0xDE8065).
+- New exes: 2025 = c9a798f6, 2026 = f739c04e (a4/*_final.exe; pre-port backups =
+  *_final_pre_hiddencols.exe). SK assets updated, SK rebuilt + installed into the v1.2.2
+  bundle. USER MUST RESTART the Starter Kit app, then test: squad screen extra columns
+  (Consistency/Dirtiness/Big Matches/Injury Prone/Fitness/One on Ones/Penalties/Corners/
+  Ambition/Loyalty/Adaptability/Versatility), click players, save+reload (the old crash repro).
+- SK Helper.cs/VersionMenu.cs comments + CLAUDE.md updated; loader .patch variant must
+  still NEVER be re-added to Game/Patches for GSLP DBs (SetupDatabase keeps deleting strays).
+
 ## PRODUCT: COMPLETE & USER-CONFIRMED WORKING
 The self-contained Starter Kit fork ships the finished product. ONLY install =
 `~/Downloads/CM0102.Starter.Kit.Mac.v1.2.2/CM0102StarterKit.app` (+ CM0102.iso archival).
 - 3 DBs: Patched 3.9.68 / "25/26 (2026)" / "26/27 (2027)" (+ save/load custom); UI
   simplified (no Nick's Patcher, no Android, no Play submenu); Play button shows the
   ACTIVE DB label; CM Explorer bundled (saves are uncompressed - GS exe default).
-- FINAL exes: 2025 = dc3804f7, 2026 = d656dc9a (gslp-archive/a4/cm0102_gslp202{5,6}_final.exe
+- FINAL exes: 2025 = c9a798f6, 2026 = f739c04e after the hidden-cols port, see 🔎 above
+  (pre-port: dc3804f7 / d656dc9a) (gslp-archive/a4/cm0102_gslp202{5,6}_final.exe
   = SK external/Files/cm0102_gslp202{5,6}.exe). SK exe 199 MB, installed. If the user's
   running app instance is stale it writes OLD embedded exes each Play - app restart fixes.
 - Loader options: TRUE = HideNonPublicBids, UnCap20s, NoWorkPermits, ChangeTo1280x800
   (all site-verified vs loader source) + NoForeignRestrictionsForAll.patch. FALSE+locked =
   everything GS pre-baked (coloured attrs w/ his palette [user-confirmed rendering],
   9 subs, regen fixes, load-all-players, unprotected contracts) - blind re-apply of the
-  GS-variant sites corrupts. HiddenAttributes = RUNTIME-INCOMPATIBLE (A/B-confirmed crash
-  on save-load; byte-compat is NOT enough) - permanently removed, port = future RE.
+  GS-variant sites corrupts. HiddenAttributes: loader variant = RUNTIME-INCOMPATIBLE
+  (writes cave at wrong VA), now BAKED at file offsets instead - see 🔎 above.
 - Saves in Game/: renamed "<name> (use 2526|2627|3968).sav" to match products. Save
   compat rules + in-save rename fixer = tools/gslp_fixsave.py (see 💾 section).
 - Validated: WC-2026 (hardcoded field) plays out; WC-2030 quals schedule ALL zones
@@ -39,8 +64,8 @@ The self-contained Starter Kit fork ships the finished product. ONLY install =
   address base+RVA and IGNORE .patch old-bytes.
 
 ## PARKED / NEXT
-User: "I have more work for afterwards" (unspecified - ask). Parked: hidden-attr columns
-port (RE of GS screens), per-country league realignment, init-banner colour, Cup.cpp:1278
+User: "I have more work for afterwards" (unspecified - ask). Parked: ~~hidden-attr columns
+port~~ (DONE 2026-07-08 late, see 🔎 above), per-country league realignment, init-banner colour, Cup.cpp:1278
 (2026-start), 26 stale-long-name audit candidates (logs/rebuild_v16.log), README refresh
 for the fork's new UI. History below is the full investigation log.
 
