@@ -1,6 +1,6 @@
 # ⏩ CONTINUE HERE (session handoff, 2026-07-08 end)
 
-## 🔎 HIDDEN-ATTRIBUTE COLUMNS PORTED (2026-07-08 late) — awaiting user in-game test
+## 🔎 HIDDEN-ATTRIBUTE COLUMNS PORTED (2026-07-08 late) — ✅ USER-CONFIRMED WORKING in-game
 The parked "hidden-attr columns port" is DONE without any RE of GS screens. Root cause of
 the old crash finally nailed: the loader-applied HiddenAttributes.patch could NEVER work —
 CM0102Loader writes at base+RVA, so the cave bytes land at VA 0xADC000 (.data BSS that the
@@ -65,9 +65,10 @@ The self-contained Starter Kit fork ships the finished product. ONLY install =
 
 ## PARKED / NEXT
 User: "I have more work for afterwards" (unspecified - ask). Parked: ~~hidden-attr columns
-port~~ (DONE 2026-07-08 late, see 🔎 above), per-country league realignment, init-banner colour, Cup.cpp:1278
-(2026-start), 26 stale-long-name audit candidates (logs/rebuild_v16.log), README refresh
-for the fork's new UI. History below is the full investigation log.
+port~~ (DONE + user-confirmed 2026-07-08 late, see 🔎 above), ~~README refresh~~ (DONE,
+SK ed7a908), per-country league realignment, init-banner colour, Cup.cpp:1278
+(2026-start), 26 stale-long-name audit candidates (logs/rebuild_v16.log).
+History below is the full investigation log.
 
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
