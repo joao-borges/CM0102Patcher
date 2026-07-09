@@ -1,11 +1,22 @@
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
+## 🎛 PLAY-BUTTON DB INDICATOR (2026-07-08, SK 66b23a9)
+User pain: no indication of the loaded DB -> save<->DB mismatch crashes on Play.
+MainMenu.RefreshForm now labels the button "Play <db label>" (refreshes on menu return
+and after each play). NB the user must RESTART the Starter Kit app to pick up new
+builds - a stale app writes its OLD embedded exes on every Play (observed: 6ab596d7
+on disk while dc3804f7/d656dc9a were current).
+
 ## 🔁 POST-MILESTONE ROUND (2026-07-08 evening): options corrected, converter shipped
 - User report (hidden attrs/coloured/uncap "missing") exposed TWO wrong conclusions:
   (1) the loader IGNORES .patch old-bytes and writes value@base+RVA (CM0102Loader.cpp
   ApplyPatchFile: sscanf 3 parts, WriteByte(addr,part3)) -> the HiddenAttributes cave
   writes .data BSS at VA 0xADC000 (zeros at runtime), NOT GS resource data; all its code
-  sites are GS==stock -> the patch is COMPATIBLE and is REINSTATED (GslpPatchFiles).
+  sites are GS==stock -> byte-compatible... BUT RUNTIME-INCOMPATIBLE (see next entry):
+  briefly reinstated, then user A/B-confirmed it crashes save-load/squad screens on the
+  GSLP exe (patch present = crash; DB-reload deleted it = same save loads). REVERTED for
+  good (SK 66b23a9); hidden-attribute columns = NOT AVAILABLE on GSLP, porting needs RE
+  of GS's screen changes. It was also (a/the) culprit of the original player-click crash.
   The original player-click crash re-attributed to the GS-variant overwrites (regen
   fixes / load-all-players / possibly coloured cave) - those stay locked FALSE.
   (2) .rsrc breaks the flat file==RVA mapping (raw 0x6da000 -> RVA 0x9e5000): the
