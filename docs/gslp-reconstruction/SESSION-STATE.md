@@ -1,3 +1,49 @@
+# ⏩ CONTINUE HERE (session handoff, 2026-07-08 end)
+
+## PRODUCT: COMPLETE & USER-CONFIRMED WORKING
+The self-contained Starter Kit fork ships the finished product. ONLY install =
+`~/Downloads/CM0102.Starter.Kit.Mac.v1.2.2/CM0102StarterKit.app` (+ CM0102.iso archival).
+- 3 DBs: Patched 3.9.68 / "25/26 (2026)" / "26/27 (2027)" (+ save/load custom); UI
+  simplified (no Nick's Patcher, no Android, no Play submenu); Play button shows the
+  ACTIVE DB label; CM Explorer bundled (saves are uncompressed - GS exe default).
+- FINAL exes: 2025 = dc3804f7, 2026 = d656dc9a (gslp-archive/a4/cm0102_gslp202{5,6}_final.exe
+  = SK external/Files/cm0102_gslp202{5,6}.exe). SK exe 199 MB, installed. If the user's
+  running app instance is stale it writes OLD embedded exes each Play - app restart fixes.
+- Loader options: TRUE = HideNonPublicBids, UnCap20s, NoWorkPermits, ChangeTo1280x800
+  (all site-verified vs loader source) + NoForeignRestrictionsForAll.patch. FALSE+locked =
+  everything GS pre-baked (coloured attrs w/ his palette [user-confirmed rendering],
+  9 subs, regen fixes, load-all-players, unprotected contracts) - blind re-apply of the
+  GS-variant sites corrupts. HiddenAttributes = RUNTIME-INCOMPATIBLE (A/B-confirmed crash
+  on save-load; byte-compat is NOT enough) - permanently removed, port = future RE.
+- Saves in Game/: renamed "<name> (use 2526|2627|3968).sav" to match products. Save
+  compat rules + in-save rename fixer = tools/gslp_fixsave.py (see 💾 section).
+- Validated: WC-2026 (hardcoded field) plays out; WC-2030 quals schedule ALL zones
+  (long-save safe); dead 2026 quals except Asia = one-season cosmetic (inherent).
+  Non-Brazil league memberships = GSLP April-2023 lineups w/ May-2026 squads (only
+  Brazil realigned - candidate future work per league).
+
+## TOOLING / REBUILD (all paths durable)
+- ~/workspace/gslp-archive/ = canonical inputs (a4 exe chain, gs_pristine, d1_data,
+  a3_data25_trim, saves/). ⚠ gslp2023 pristine LOST (tmp decay; only fonts) - d1_data IS
+  the GSLP-structure base now. Never use /tmp for anything durable.
+- tools/gslp_newdb.sh <updateData> <out> [--zip f] = convert ANY stock-style DB update
+  to the GSLP products (VALIDATED: reproduces shipped d1 from May-2026 input, 4 filler
+  bytes delta). Review printed match stats (~10.1k good); HANDMATCH in gslp_d1.cs for
+  casualties.
+- Exe chain: bases in archive; tools/gslp_degs.py = idempotent one-shot (de-GS + SA-cups
+  + WCC restore + renames + icon + Philly VA 0xDE7000); gslp_wc32.py = 2025 WC field.
+- SK build recipe: reassemble Game.zip if needed; resgen into obj/x86/Release (NOT
+  obj/Release!); xbuild Release x86; output bin/x86/Release; cp exe (+SharpZipLib) into
+  bundle drive_c. Wine launches from tool shell: env -u NoDefaultCurrentDirectoryInExePath.
+- ⚠ .rsrc breaks flat file==RVA mapping (raw 0x6da000 -> RVA 0x9e5000); loader patches
+  address base+RVA and IGNORE .patch old-bytes.
+
+## PARKED / NEXT
+User: "I have more work for afterwards" (unspecified - ask). Parked: hidden-attr columns
+port (RE of GS screens), per-country league realignment, init-banner colour, Cup.cpp:1278
+(2026-start), 26 stale-long-name audit candidates (logs/rebuild_v16.log), README refresh
+for the fork's new UI. History below is the full investigation log.
+
 # GSLP × May-2026 — Session State (updated 2026-07-07, session 3)
 
 ## 🎛 PLAY-BUTTON DB INDICATOR (2026-07-08, SK 66b23a9)
