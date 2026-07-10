@@ -1,4 +1,29 @@
-# ⏩ CONTINUE HERE (session handoff, 2026-07-08 end)
+# ⏩ CONTINUE HERE (session handoff, 2026-07-08 end; addendum 2026-07-10)
+
+## 🩹 ALL-LEAGUES SUPPORT ROUND (2026-07-09/10) — save surgery + 3 new loader patches
+User plays an all-leagues save (Can+Esp+BR.sav, 2 human mgrs: Barcelona + Vancouver/MLS).
+- **Save format knowledge** (extends gslp_fixsave.py): finance.dat = 11184 recs × 359 B
+  indexed by club id; **club LIVE BALANCE = int64 at finance rec +0/+4** (engine does
+  64-bit sub/sbb + per-status clamps at load, fn 0x59bf09 loop; display converts w/
+  factor ~0.775 to $). club.dat +101 = static DB "Bank" (feeds board budget). CM Explorer
+  money edits wrote ~6.3e9 into the int64 → display fine ($4.89B) but 32-bit budget math
+  collapses → "rich club, $0 transfer funds". Fix: balances → 200M, Bank → 90M. Saldo
+  displays are 64-bit-safe; keep balances ≤ ~2.1e9, sane ≤ ~500M internal.
+- **Assert RE recipe**: cpp-file dialogs = push <full-path-string VA>; call 0x944cff;
+  push <LINE imm32>; ... call 0x5e8290 (dialog). Map all sites by scanning refs to the
+  path string then the next imm push. Database.cpp path @ VA 0x9b5ac8 (139 lines),
+  usa_mls.cpp @ 0xaa1fb4.
+- **3 new patches** in Game/Patches (added to SK GslpPatchFiles + Game.zip, SK commits
+  84b6234/e176a50/6fdb48a): ProtectionPatches (upstream; GS had pre-baked 2/5 fixes,
+  rest byte-verified stock), SilenceDatabase17353 (null-club check @0x540a50 returns
+  0 safely - popup path replaced w/ silent ret), MlsConferenceFallback (usa_mls.cpp:1819:
+  engine hardcodes 12 stock MLS club ids @0x9d037c-0x9d03a8 for conference assignment
+  → every modern MLS club asserted ~3s during MLS season; fallback @0x509f6d returns
+  club-id%3 → conf ids 0x413/0x47b/0x414; stock-bound 12 keep real conferences).
+- Also: Install VAR Commentary feature REMOVED from SK (user request, commit aab6ac6);
+  main menu reflowed 4×2.
+
+# (2026-07-08 handoff below)
 
 ## 🔎 HIDDEN-ATTRIBUTE COLUMNS PORTED (2026-07-08 late) — ✅ USER-CONFIRMED WORKING in-game
 The parked "hidden-attr columns port" is DONE without any RE of GS screens. Root cause of
