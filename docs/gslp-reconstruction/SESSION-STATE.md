@@ -32,6 +32,16 @@ User plays an all-leagues save (Can+Esp+BR.sav, 2 human mgrs: Barcelona + Vancou
   position ratings, contracts) — user screenshots of every CMX dialog archived in the
   session; CMX double-digit input bug (MFC app, no EM_LIMITTEXT/updown found in
   resources — unresolved) becomes moot once phase 2 ships.
+- **Save Editor PHASE 2 SHIPPED (2026-07-14 late, SK 256ae0c)**: Players tab + dialog
+  (CA/PA, reps, positions, 42 attributes, value, wage, squad no). ALL layouts came from
+  **CM0102Patcher Scouter/SaveReader.cs + DataBlocks.cs** (Nick already had the full save
+  spec: staff 110B/player 70B/contract 80B w/ 21B-preamble/names 60B + intrinsic↔display
+  conversion incl. GK branches — no RE needed!). Validated byte-exact vs the user's CMX
+  screenshots (CR7@Vancouver: 14/14 attr conversions, positions, wage 20576, CA/PA).
+  New finding: save reputations are 0-10000 (= DB 0-200 × 50). Inversion round-trips
+  234/240; unreachable extremes (CA-200 can't display <4) write nearest achievable.
+  Player age from staff+18 (TCMDate year) vs game date at general.dat+3946.
+  AWAITING user in-game verification of an attribute edit.
 
 # (2026-07-08 handoff below)
 
