@@ -22,6 +22,16 @@ User plays an all-leagues save (Can+Esp+BR.sav, 2 human mgrs: Barcelona + Vancou
   club-id%3 → conf ids 0x413/0x47b/0x414; stock-bound 12 keep real conferences).
 - Also: Install VAR Commentary feature REMOVED from SK (user request, commit aab6ac6);
   main menu reflowed 4×2.
+- **Save Editor phase 1 SHIPPED (2026-07-14, SK a60a00d)**: built-in WinForms editor
+  (SaveGame.cs parser + SaveEditorForm.cs) replaces the CM Explorer button; edits club
+  balance (finance int64 +0) AND Bank (+101) together, clamped ≤500M, auto-backup,
+  refuses while cm0102 runs. CM Explorer still launchable from inside it for players/
+  staff. Cross-validated: CM Explorer's "Cash" column == finance int64 (Barca
+  493,338,265 matched exactly). PHASE 2 (parked): map staff.dat/player.dat records
+  (name-index refs, attribute encoding vs 0-20 display, CA/PA 0-200 per CMX screens,
+  position ratings, contracts) — user screenshots of every CMX dialog archived in the
+  session; CMX double-digit input bug (MFC app, no EM_LIMITTEXT/updown found in
+  resources — unresolved) becomes moot once phase 2 ships.
 
 # (2026-07-08 handoff below)
 
