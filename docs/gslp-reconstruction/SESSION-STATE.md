@@ -1,4 +1,69 @@
-# ⏩ CONTINUE HERE (session handoff, 2026-07-08 end; addendum 2026-07-10)
+# ⏩ CONTINUE HERE (session handoff, 2026-07-08 end; addenda 2026-07-10 / 2026-07-15)
+
+## 🛠 SK BUILT-IN SAVE EDITOR — full state (2026-07-15, mid-flight handoff)
+SHIPPED (SK commits a60a00d→416cadb, installed in bundle): Save Editor form replaces the
+CM Explorer button (legacy CMX launchable from inside). Clubs tab (balance+bank, clamped
+≤500M, backup-first, refuses while cm0102 runs) + Players tab (filters name/club/nation,
+double-click edit dialog: CA/PA, reps, 12 positions, 42 attrs in 1-20 display scale w/
+intrinsic conversion inverted on write, value, wage, squad no). Validated byte-exact vs
+user's CMX screenshots (CR7@Vancouver). In-game verification of an attribute edit STILL
+PENDING (user guinea-pig test).
+
+### 📜 SAVE-FORMAT REGISTRY (all verified against Can+Esp+BR.sav unless noted)
+- Block table: int32==3 at +0 (4=compressed, unsupported), count at +8, then 268B
+  entries: pos+0, size+4, ASCIIZ name+8.
+- club.dat 581B recs: id+0, long name+4 (51), short+55 (26), **Bank int32 +101**.
+- finance.dat 359B recs by club id: **live balance int64 +0/+4** (engine 64-bit ops +
+  status clamps at 0x59bf09 loop). Display currency multiplies (~×1.78 for user's $
+  setting per 500M→"888M" datapoint). >~2.1e9 breaks budget math (signed-32 overflow).
+- staff.dat 110B recs: id+0, first/second/common name ids +4/+8/+12, DOB TCMDate +16
+  (year int16 = +18), nation +26, 2nd nation +30, int caps byte +34, int goals byte +35,
+  club id +57, value int32 +82, **mentals bytes +86..+93 raw 0-20 in alphabetical order**
+  (Adaptability, Ambition, Determination, Loyalty, Pressure, Professionalism,
+  Sportsmanship, Temperament), player.dat id int32 +97.
+- player.dat 70B recs: id+0, squadNo+4, CA int16 +5, PA +7, HomeRep +9, CurRep +11,
+  WorldRep +13 (**reps stored ×50** of the 0-200 DB scale), positions +15..+26
+  (GK,SW,D,DM,M,AM,ATT,WB,Right,Left,Centre,FreeRole), 42 attrs +27..+68 alphabetical
+  (Acceleration..WorkRate), morale byte +69.
+- Attribute conversion (from CM0102Patcher **Scouter/SaveReader.cs + DataBlocks.cs** —
+  Nick's repo has the whole spec, no RE needed): shown = trunc(t²/30 + t/3 + 0.5),
+  t = intrinsic/10 + CA/w + 10; w=20 (high) / 200 (low). Always-high: Anticipation,
+  Decisions, Heading, LongShots, Passing, Penalties, Positioning, Tackling. GK trio
+  (high iff GK-pos≥15): Handling, OneOnOnes, Reflexes. Outfield tech (low iff GK≥15):
+  Crossing, Dribbling, Finishing, Marking, Movement, ThrowIns, Vision. Rest raw 1-20.
+  Inversion: t=-5+√(10+30·shown); intrinsic≈(t-10-CA/w)·10, then ±15 refine (truncation);
+  clamp to sbyte; extremes can be unreachable (CA-200 min display = 4) → nearest.
+- nation.dat 290B recs: id+0, name+4 (50).
+- first/second/common_names.dat 60B recs, name at +0 (50); name id == record index.
+- contract.dat: int32 preCount, int32 count, preCount×21B entries (if preCount>0 the
+  real count = last entry's int32 at +17), then 80B recs: staffId+0, club+4, wage+12,
+  bonuses…, squad status +79 (full struct in Scouter/DataBlocks.cs).
+- general.dat: game date TCMDate at +3944 (day int16, year int16, leap int32).
+- Preferences.dat: **52B recs at block + staffId×52**: id, fav clubs ×3, disliked clubs
+  ×3, fav staff ×3, disliked staff ×3 (int32 ids, -1 = empty). Verified vs CMX (CR7:
+  Sporting/Real/Juventus; Liverpool/Chelsea/Barcelona; Mourinho/CR7/JoaoBorges; Messi).
+- injury.dat **IN PROGRESS**: CMX reads AND writes it (string "File error writing injury
+  file tail" → data + tail). Sizes differ per save gen; first divergence at byte ~31 →
+  no fixed head. Repeating ~31-39B records seen around known-player id hits, containing
+  a TCMDate-ish (years 0x7E9/0x7EA) and a PAIR of int16 10000s ("10 27 10 27" = 100.00%
+  — condition + fitness/sharpness?, injured < 10000); recurring 0x32 byte near record
+  starts. NEXT: derive exact record size via the 10 27 10 27 lattice; decode id field
+  (staff vs player id — hits exist for both); implement condition edit + remove-injury
+  (likely reset dates + 10000s; handle the tail). CMX screenshot ground truth: CR7 had
+  condition 54% on 2026-07-14 afternoon save.
+
+### 🗒 UI TODO (user requests, 2026-07-14/15)
+1. Club/nation search via keyboard-friendly ComboBox selectors (autocomplete) instead of
+   free-text; 2. sortable list columns (name/nation); 3. player dialog additions:
+   mentals (+86..93), caps/goals (+34/35), nationality + 2nd nationality dropdowns
+   (staff +26/+30), liked/disliked clubs+staff editors (Preferences.dat), condition% +
+   remove injury (blocked on injury.dat above). Morale scale unknown (byte; CMX showed
+   20 — maybe /5 of 0-100?): verify before exposing further.
+### 🔁 Dev loop
+Mono test harness pattern: csc SaveGame.cs + scratch CLI vs the real save (bundle Game/).
+Build: resgen only if resx changed; xbuild x86 Release; cp exe to bundle; user restarts
+app. CMX reference screenshots were in the session scratchpad (cmx/*.png — /tmp DECAYS;
+key facts captured above). Player guinea-pig edit verification pending.
 
 ## 🩹 ALL-LEAGUES SUPPORT ROUND (2026-07-09/10) — save surgery + 3 new loader patches
 User plays an all-leagues save (Can+Esp+BR.sav, 2 human mgrs: Barcelona + Vancouver/MLS).
