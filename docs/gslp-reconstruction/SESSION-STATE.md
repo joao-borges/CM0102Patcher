@@ -1,8 +1,20 @@
 # ⏩ CONTINUE HERE (session handoff 2026-07-23 later; prior: 07-08/10/15/23)
 
-## ✅ RE SOLVED, PATCH BUILT — 26-player national-squad cap (AWAITING USER IN-GAME TEST)
-The 26 cap is fully reverse-engineered and a 5-byte patch is built + statically
-verified. NOT yet installed in SK assets — user must test first.
+## ✅ SHIPPED & USER-CONFIRMED — 26-player national-squad cap removed (2026-07-23)
+User tested in-game (27th player added, worked up to 38): SK sources patched
+(external/Files/cm0102_gslp202{5,6}.exe, SK commit 6ed9a95 pushed), SK rebuilt
++ installed in the v1.2.2 bundle, staging/backups cleaned, a4 archive finals
+updated (_final_pre_natsquad.exe = pre-patch backups). Exe md5s: 2025 =
+37ac4277, 2026 = 530dce95. Mac build gotcha discovered: homebrew resgen/xbuild
+WRAPPER SCRIPTS lose DYLD_FALLBACK_LIBRARY_PATH (SIP strips it exec'ing
+protected /bin/sh) → "libgdiplus.dylib not found"; invoke mono directly:
+`DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib /opt/homebrew/Cellar/mono/6.14.1/
+bin/mono .../resgen.exe|xbuild.exe ...`. Also: bundle wine = wine32on64 (the
+plain `wine` binary is dead i386); direct CM0102Loader launch outside the
+wineskinlauncher renders broken — for exe tests, patch the embedded resource
+INSIDE the installed CM0102StarterKit.exe instead (resources are raw bytes;
+find embedded exe base via 16-byte context match, distinguish stock/2025/2026
+copies by diff-marker bytes) and use the NORMAL app Play flow. RE details below.
 - **Authority**: `GetNationalSquadSizeLimits` VA 0x76d430 (national_teams.cpp
   ~line 2010; only ONE caller, the AI pick fn): WC-family comps (9 comp-id
   globals 0x9cf78c..0x9cf964) → max=min=23; squad types 0/2 (full/U21) →
@@ -32,15 +44,10 @@ verified. NOT yet installed in SK assets — user must test first.
   Both sites byte-identical in stock/gslp2025/gslp2026/pristine (GS's 6 byte
   diffs in the region are comp-id global swaps, none in our functions).
   Built: gslp-archive/a4/cm0102_gslp202{5,6}_natsquad50.exe (from live SK exes).
-- **USER TEST PLAN** (GSTEST bundles are deleted; use main bundle CAREFULLY):
-  copy the natsquad50 exe over `Game/cm0102.exe` in the bundle and launch
-  CM0102Loader.exe directly (NOT via the SK Play button — Play rewrites the
-  stock embedded exe, which is also the rollback). Load a GSLP save as national
-  manager: (1) add a 27th player to the national squad — should succeed;
-  (2) fill toward 50 — "squad full" message should appear only at 50 and say 50;
-  (3) advance past an international window — AI squads must still be 26 (probe
-  save: count staff +36 == nat_club id); (4) WC finals squad still 23 for AI.
-  If OK → rerun tool on SK external/Files exes, rebuild SK, install, commit.
+- ~~USER TEST PLAN~~ DONE 2026-07-23: user confirmed 27th player add works,
+  filled to 38 without issues. Remaining soft checks (opportunistic, next time
+  the user plays): AI squads still 26 after an international window (probe:
+  staff +36 == nat_club id count), WC finals AI squad still 23.
 - Accepted side effect (document if shipped): a HUMAN at a WC-family comp may
   register >23 (AI never does).
 - RE breadcrumbs: assert recipe works (push path-string VA; call 0x944cff;
