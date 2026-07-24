@@ -1,6 +1,179 @@
-# ⏩ CONTINUE HERE (session handoff, 2026-07-08 end; addenda 2026-07-10 / 2026-07-15)
+# ⏩ CONTINUE HERE (session handoff 2026-07-23 later; prior: 07-08/10/15/23)
 
-## 🛠 SK BUILT-IN SAVE EDITOR — full state (2026-07-15, mid-flight handoff)
+## ✅ RE SOLVED, PATCH BUILT — 26-player national-squad cap (AWAITING USER IN-GAME TEST)
+The 26 cap is fully reverse-engineered and a 5-byte patch is built + statically
+verified. NOT yet installed in SK assets — user must test first.
+- **Authority**: `GetNationalSquadSizeLimits` VA 0x76d430 (national_teams.cpp
+  ~line 2010; only ONE caller, the AI pick fn): WC-family comps (9 comp-id
+  globals 0x9cf78c..0x9cf964) → max=min=23; squad types 0/2 (full/U21) →
+  max=26 min=22; other types → max=24 min=22. Writes a per-nation per-type
+  struct: 5 slots × 20 B, max byte +0x42, min byte +0x43 (also +0x44/+0x45
+  flags, +0x3a/+0x3e TCMDates). ALL enforcement reads the FIELD — zero other
+  26-literals in national_teams / _screens / squad_manager code (checked;
+  squad_manager.cpp code = VA 0x8599xx-0x85b0xx, no 0x1A at all; the
+  0x853000-0x859000 0x1A cluster is Spanish-league constructors, unrelated).
+- **Shared gate**: `CanAddPlayerToNationalSquad` VA 0x76db00 (~line 2510).
+  Callers: 3× AI pick fn (silent), 2× national_teams_screens.cpp 0x7791bf/
+  0x7791f4 (human UI, message target). Fullness check: 0x76dd48 edi=&maxField;
+  call 0x53c590 (count = scan of the FIFTY-slot club player array, `mov ebp,0x32`
+  loop, no 26 anywhere); 0x76dd51 `mov cl,[edi]`; `cmp al,cl; jl ok`.
+- **Why NOT raise the limits-fn constant**: the AI pick fn uses the field as
+  selection count AND loop bound (reads via saved &field at [esp+0x6c]:
+  0x76d02c count arg, 0x76d384 loop bound, 0x76c767 feeds the cmp-26/cmp-24
+  template chooser) over a stack position-template that exists only in
+  26/24/23-entry variants → raised field = AI reads garbage template words.
+  Pinning AI reads to 26 breaks WC comps (field 23 → 3 failed adds → assert
+  DIALOGS, national_teams.cpp:1864 path calls 0x5e8290). So AI stays untouched.
+- **THE PATCH (tools/gslp_natsquad.py in CM0102Patcher, idempotent, verified)**:
+  file 0x36dd51 `8A 0F`→`B1 32` (validator max read = 50); file 0x36dd7f
+  `0F BE 17`→`6A 32 5A` (squad-full message %d = 50). 5 bytes total. AI squads
+  stay stock (26/24/23); only the HUMAN can add past 26, capped at 50 = the
+  physical array size (insert scan 0x76d09b and count fn both iterate 0x32).
+  Both sites byte-identical in stock/gslp2025/gslp2026/pristine (GS's 6 byte
+  diffs in the region are comp-id global swaps, none in our functions).
+  Built: gslp-archive/a4/cm0102_gslp202{5,6}_natsquad50.exe (from live SK exes).
+- **USER TEST PLAN** (GSTEST bundles are deleted; use main bundle CAREFULLY):
+  copy the natsquad50 exe over `Game/cm0102.exe` in the bundle and launch
+  CM0102Loader.exe directly (NOT via the SK Play button — Play rewrites the
+  stock embedded exe, which is also the rollback). Load a GSLP save as national
+  manager: (1) add a 27th player to the national squad — should succeed;
+  (2) fill toward 50 — "squad full" message should appear only at 50 and say 50;
+  (3) advance past an international window — AI squads must still be 26 (probe
+  save: count staff +36 == nat_club id); (4) WC finals squad still 23 for AI.
+  If OK → rerun tool on SK external/Files exes, rebuild SK, install, commit.
+- Accepted side effect (document if shipped): a HUMAN at a WC-family comp may
+  register >23 (AI never does).
+- RE breadcrumbs: assert recipe works (push path-string VA; call 0x944cff;
+  push LINE; ... call 0x5e8290). cpp-file → code-range mapping via push-imm32
+  refs to the path string. 391 unique .cpp names in exe. Scratchpad scripts
+  (THIS session 0ddf20e2-...): find_squadmgr.py, scan26.py, ctx26.py.
+
+## 🆕 2026-07-23 later session (SK master 171f461, installed in bundle, pushed)
+- **171f461**: national-squad filter + Nations tab. RE FINDINGS: **staff +36
+  (NationalJob) for players = nat_club.dat id of the CURRENT national squad**
+  (-1 = none; nat_club = 462×581B club recs, ids 10722-11183 continuing after
+  club.dat, named after countries; 26 players per squad, full+U21 share the
+  name → country filter shows ~52-player pool; 209 teams populated in the
+  user's save). staff +109 SquadSelectedFor = flag byte (0/2/4/8/16, not
+  needed). **nation.dat editable fields**: rep i16 +142 (×50 of 0-200),
+  league standard sbyte +133 (0-20), current FIFA coefficient DOUBLE +168;
+  +126 dev / +132 importance left alone (enum-ish, unverified). SaveGame
+  gained ReadDouble/WriteDouble, Nation.RecordBase, PlayerRef.NationalTeam.
+  Harness lesson: Button.PerformClick() is a NO-OP on a never-shown form —
+  Show() the dialog first in harnesses.
+- **ec6f363**: filter combos (club/nation, players+staff tabs) now CONTAINS-filter:
+  typing rebuilds the dropdown to only names containing the text (anywhere) and
+  auto-opens it; full list kept in combo.Tag via SetFilterItems. WINE-MONO
+  GOTCHA: rebuilding Items or setting DroppedDown=true AUTO-SELECTS an item and
+  clobbers the edit text — re-assert combo.Text LAST (FilterHarness caught it:
+  typed 'united' became 'United (BAH)'). Dialog prefs/nationality combos keep
+  the old append-style Attach (exact-text semantics matter there).
+- **724ab36**: Players tab BATCH EDIT — second filter-bar row: attribute dropdown
+  (condition% / fitness% / heal-injuries / morale / CA / PA / all 42 attrs) +
+  "Apply to filtered..." → confirm popup with exact match count (warns when no
+  filter = whole save), applies to ALL matches (uncapped, unlike the 400-row
+  list), one backup+save per batch. Internals: FilteredPlayers() extracted
+  (uncapped filter), ApplyPlayerBatch(item,value,targets) stages only (harness-
+  safe), PlayerEditForm AttrLabels/AttrKinds/Kind/ToDisplay/FromDisplay now
+  internal statics. Converted attrs re-encoded per player vs own CA/GK;
+  cond/fit/heal skip FitnessBase=-1. Verified via BatchHarness (18 Ronaldos:
+  cond 7700 staged, heal, raw + converted attr re-display) + BoundsHarness.
+- **8dd23ef**: Staff tab gained a Job column (staff +61 JobForClub byte,
+  fallback +40 JobForNation; StaffJob enum 0-17 from Nick's Structures.cs:
+  1 Chairman .. 5 Manager, 8 Coach, 9 Scout, 10 Physio, 16 Retired Player —
+  save histogram: 3217 managers / 7104 coaches / 8938 scouts / 6369 physios /
+  86 retired / 173 none). Coaching editor factored into shared CoachingPanel.cs;
+  PlayerEditForm shows a 4th "Coaching" tab for the 1,058 player-managers
+  (players with NonPlayerBase >= 0). Retired staff keep NO player.dat record
+  (0/86 in save) — playing attrs for retired players are impossible, the game
+  deletes them.
+- **nonplayer.dat SOLVED — no RE was needed**: layout was sitting in Nick's
+  CM0102Patcher `SaveChanger/Structures.cs` (TNonPlayer, `// 68` = record size;
+  that file IS the save-format spec — check it FIRST for any future block).
+  68B recs indexed by **staff +105** (int32, -1 = none; rec id == index, verified
+  100% on Can+Esp+BR: 31,896 recs, ALL 31,032 non-player staff + 1,058
+  player-managers have one). Layout: id+0, CA i16 +4, PA +6, Home/Cur/World rep
+  i16 +8/+10/+12 (×50 scale), 21 intrinsic sbyte coaching attrs +14..+34
+  alphabetical (Attacking, Business, Coaching, CoachingGks, CoachingTechnique,
+  Directness, Discipline, FreeRoles, Interference, Judgement, JudgingPotential,
+  ManHandling, Marking, Motivating, Offside, Patience, Physiotherapy, Pressing,
+  Resources, Tactics, Youngsters), 8 position int32s +35, formation sbyte +67.
+  Display conversion = the player HIGH branch (CA/20), clamped to 1-20
+  (validated statistically: 98.8% of 670k conversions in-range; overflow = elite
+  managers, e.g. Pep CA190 Tactics raw 64 → 31 → shows 20; NOT byte-verified
+  vs in-game screen — add to user in-game verification list). Because the
+  display clamps, StaffEditForm writes ONLY user-changed attributes (NB
+  PlayerEditForm still rewrites ALL attrs on OK — same lossiness latent for
+  elite players, candidate fix).
+- **StaffEditForm is now tabbed** (Personal / Coaching / Likes & Dislikes);
+  PlayerEditForm exposes internal ShownFromIntrinsicHigh/IntrinsicFromShownHigh.
+  Verified: mono data harness vs real save + new StaffHarness & old
+  BoundsHarness under the bundle Wine engine (ALL OK; NB TabPage client is
+  872px wide there — prefs groups were 2px over on the first pass). Installed
+  in the v1.2.2 bundle 2026-07-23.
+- **man_conf.dat = board CONFIDENCE, NOT manager contracts** (dead end for
+  wages): repeating 5000s (0-10000 confidence scale) + season-year TCMDates,
+  no aligned staff-id table (43B/86B both divide, neither aligns ids). Manager
+  wage stays disabled for staff without a contract.dat record (their staff +78
+  wage cache is 0 too). If manager wages ever matter: human_manager.dat for
+  the human manager, or accept the engine derives AI manager wages.
+
+## 🛠 SK BUILT-IN SAVE EDITOR — CURRENT STATE (2026-07-23, SK master 34ce0a2)
+All shipped + installed in the v1.2.2 bundle (user restarts app to pick up builds).
+Editor = 3 tabs (Clubs / Players / Staff), all DataGridView + dock-layout + tab order.
+- **Clubs**: balance (finance int64) + Bank (+101), clamp ≤500M, backup-first.
+- **Players** (64.5k): filters name/club/nation (Wine-safe autocomplete combos),
+  Pos column (Nick's ShortPosition + WB), sortable columns w/ sort persistence.
+  Dialog tabs: Attributes (CA/PA, reps, positions, 42 attrs w/ intrinsic conversion,
+  value, wage, squad no) / Condition & Personal (condition%+fitness% via injury.dat,
+  clear-injury, morale, caps/goals, nationality+2nd dropdowns, BIRTH DATE editor w/
+  calculated birthday-aware Age — DOB day-of-year is 0-BASED, 0 = Jan 1) /
+  Likes & Dislikes (Preferences.dat: club combos + people via StaffPickerDialog).
+- **Staff** (31k non-players incl. managers/coaches/RETIRED players — CR7 retired
+  Feb 2027 in the user's save!): StaffEditForm = DOB/age, nationalities, caps/goals,
+  value, wage-if-contract (manager contracts NOT in contract.dat; man_conf.dat
+  is confidence data, NOT contracts → wage disabled for them), mentals, prefs,
+  and (9cac1e8) the Coaching tab — CA/PA/reps + 21 nonplayer.dat attributes.
+- **SaveGame.cs is STREAM-BASED** (24d17b6): FileStream + transient per-block parse +
+  pending-write overlay; Save() = backup + patch changed byte runs only. NEVER load
+  whole save to byte[] (32-bit Wine address space). ~60MB peak, ~0.6s load.
+  Also fixed: club gender byte at +55, SHORT NAME AT +56 (not +55!).
+- Dev loop: csc harness + mono vs real save (bundle Game/); xbuild x86 Release;
+  cp exe to bundle; Wine headless UI harness = BoundsHarness pattern (see
+  starter-kit-mac-build memory: Assembly.LoadFrom + reflection + form.Show +
+  DoEvents + bounds/scroll/sort asserts under the bundle engine) — RUN IT before
+  shipping any UI change.
+
+### ⏭ NEXT CANDIDATES (updated 2026-07-23 later session)
+1. ~~nonplayer.dat RE~~ DONE (9cac1e8, see 🆕 above). ~~man_conf.dat RE~~ DEAD
+   END (board confidence, not contracts).
+2. PlayerEditForm lossy-rewrite fix: write only user-changed attributes on OK
+   (StaffEditForm already does this; elite players' >20 attrs currently get
+   degraded to display-20 intrinsics if the dialog is OK'd).
+3. Engine-side comp-91 rename (see comp-91 saga below) if the German League Cup
+   cosmetic ever bothers the user again.
+4. PENDING USER IN-GAME VERIFICATIONS (never done): attribute edit, heal-injury
+   (if game resurrects injury from event pool → neutralize mapped 48B event,
+   mapping = ref>>8), DOB/age edit, staff edit, coaching-attribute display match
+   (is a coach's in-game screen == our high-branch clamped 1-20 value?).
+
+## 🧯 SESSION LESSONS INDEX (2026-07-15..23, details in sections below + memory)
+- WinForms under the bundle's wine-mono: NO built-in AutoComplete (crash), NO
+  ListViewItemSorter/ListView (broken scroll), NO BeginUpdate/EndUpdate reliance,
+  NO Anchor-to-unsized-TabPage (THE scroll bug: anchor distances baked vs 200x100
+  default bounds) → dock-only, DataGridView, double-buffer via reflection,
+  explicit tab order (UiHelper.AssignTabOrder), batch AddRange.
+- Editor OOM: dispose SaveGame + eager GC; ShowDialog does NOT dispose forms.
+- {} in game texts = STOCK bug (empty gender-variant blocks printed literally);
+  stripped everywhere incl. data zips (0aa4eab) — user-confirmed fixed.
+- comp-91 rename attempt = FAILED+REVERTED (28ceaa8): engine-bound comps
+  (GERMAN_LEAGUE_CUP identifier) resolve data BY NAME at load; comp season blocks
+  "<name>_<id>.tmp" also store their filename in the payload. Data-side comp
+  renames are FORBIDDEN for engine comps.
+- club_comp_history.dat is NOT a uniform record array — pattern-match only.
+- python: open(p,"wb") truncates BEFORE the arg expression reads the file.
+
+## (superseded phase-1/2 handoff below)
 SHIPPED (SK commits a60a00d→416cadb, installed in bundle): Save Editor form replaces the
 CM Explorer button (legacy CMX launchable from inside). Clubs tab (balance+bank, clamped
 ≤500M, backup-first, refuses while cm0102 runs) + Players tab (filters name/club/nation,
@@ -42,15 +215,34 @@ PENDING (user guinea-pig test).
 - Preferences.dat: **52B recs at block + staffId×52**: id, fav clubs ×3, disliked clubs
   ×3, fav staff ×3, disliked staff ×3 (int32 ids, -1 = empty). Verified vs CMX (CR7:
   Sporting/Real/Juventus; Liverpool/Chelsea/Barcelona; Mourinho/CR7/JoaoBorges; Messi).
-- injury.dat **IN PROGRESS**: CMX reads AND writes it (string "File error writing injury
-  file tail" → data + tail). Sizes differ per save gen; first divergence at byte ~31 →
-  no fixed head. Repeating ~31-39B records seen around known-player id hits, containing
-  a TCMDate-ish (years 0x7E9/0x7EA) and a PAIR of int16 10000s ("10 27 10 27" = 100.00%
-  — condition + fitness/sharpness?, injured < 10000); recurring 0x32 byte near record
-  starts. NEXT: derive exact record size via the 10 27 10 27 lattice; decode id field
-  (staff vs player id — hits exist for both); implement condition edit + remove-injury
-  (likely reset dates + 10000s; handle the tail). CMX screenshot ground truth: CR7 had
-  condition 54% on 2026-07-14 afternoon save.
+- injury.dat **DECODED 2026-07-15** (validated on all 3 saves, 100% in-range; CR7
+  54%-condition CMX screenshot matched byte-exact). TWO sections:
+  1. **FITNESS TABLE: nstaff × 31-byte records indexed by staff table index (== staff
+     id)** at block +0. Layout: +0 TCMDate last-update (day i16, year i16, leap i32),
+     **+8 int16 fitness** (0-10000, usually ~10000), **+10 int16 CONDITION** (0-10000;
+     CR7 5444 = CMX "54%"), +12 int16 signed fatigue-ish, +14 int16 recent minutes
+     played, +16 int16 0, **+18 byte injury type (0xff = healthy)**, **+19 byte injury
+     severity/status (0 = none, 1-4)**, +20/+24 int32 refs to event pool
+     (**eventIndex = ref >> 8**, low byte = in-memory sub-offset; -1 = none; healthy
+     players keep a ref to their LAST/history event), +28..+30 bytes (last usually 0x32).
+  2. **EVENT POOL** after the table: ~32B header (int32 event count, rest varies per
+     save gen — tail size NOT constant, don't assume) then **48-byte event records**:
+     +4 TCMDate injury start, +12 int16 duration-ish (days), +14 int16 remaining-ish,
+     +20 byte type?, +21 TCMDate second date (unaligned!), +36.. active-injury extras;
+     history events have +20=0xff, date2 zeroed. Mapping validated: 97% of the 1,320
+     injured staff's refs land on events with dates within 400 days (random control 0%).
+  The CMX "injury file tail" = this event pool. **SK editor v1 edits ONLY the fitness
+  table** (condition/fitness write, heal = +8/+10=10000, +18=0xff, +19=0; pool
+  untouched — if the game resurrects an injury from the pool event on load, iterate).
+  RED HERRINGS to not rediscover: "10 27 10 27" lattice residue 8 mod 31 ✓ but the
+  file is NOT 31B×N+2 (it's nstaff×31 + pool); f20 "(playerId|slot)" sightings were
+  raw rebased pointers (fitness recs are 256B apart in memory → ref>>8 == staff idx);
+  int16@+14==1421==CR7's player id was minutes played, pure coincidence.
+  Also confirmed en route: staff+34/+35 = int caps/goals bytes (CR7 226/143), staff+70
+  TCMDate contract expiry cache, staff+78 int32 wage cache (20576 ✓), player+69 morale
+  byte (CMX 20 == raw 20, scale 0-20). Preferences.dat records = size/52 COUNT <
+  nstaff (83,784 vs 95,595 in Can+Esp+BR) — bounds-check + verify rec id == staff id
+  before editing prefs.
 
 ### 🗒 UI TODO (user requests, 2026-07-14/15)
 1. Club/nation search via keyboard-friendly ComboBox selectors (autocomplete) instead of
@@ -65,6 +257,52 @@ Build: resgen only if resx changed; xbuild x86 Release; cp exe to bundle; user r
 app. CMX reference screenshots were in the session scratchpad (cmx/*.png — /tmp DECAYS;
 key facts captured above). Player guinea-pig edit verification pending.
 
+## 🔤 STOCK {} TEXT BUG FIXED (2026-07-21, SK 0aa4eab) — user-confirmed in game
+CM0102's template engine prints EMPTY gender-variant blocks "{}" literally (non-empty
+ones like {do}/{s} work; clubs are gender=255 in every DB incl. stock — articles render
+as nothing). POR/SPA/FRA templates carry ~133k empty blocks → "Roma{}" in news/comments
+since the original game. FIX = remove them (semantics-preserving): language.ldb via
+offset-safe in-string tail-shift (strings are NUL-terminated in fixed slots, bytes past
+NUL are garbage — never resize the file), events_*.cfg plain replace. Applied to live
+bundle Data/ (backups *.pre-brace-fix.bak) AND inside data/gslp_data.zip +
+data/patched_data.zip (resgen re-run → SK rebuilt+installed). Template anatomy:
+\x08 = name insertion point, {a|b|...} = variants picked by genderName byte
+(club.dat +55 = gender, short name at +56 NOT +55!). Sentence templates live in
+language.ldb (204MB, all languages) + events_<lang>.cfg (match commentary); .lng files
+are only padded NAME dictionaries. Possible future nicety: assign real club genders for
+proper articles ("vitória DO Barcelona").
+
+## 🏆 COMP-91 SAGA — FINAL STATE: RENAME FULLY REVERTED (2026-07-21, SK 28ceaa8)
+World-finals comp map in the GSLP exes (from save <name>_<id>.tmp blocks): comp 104 =
+stock "FIFA Club World Championship" (GS's active CWC), comp 92 = German Super Cup slot
+reused by GS for Copa Sudamericana (data-only comp, rename safe — no engine object),
+comp 91 = German League Cup: GS runs his annual Euro-v-SA world final ON the stock
+engine GLC comp (ger_lge_cup.cpp), comp 325 = stock Intercontinental Cup (runs again
+since the WCC restore). RM/Barca "German League Cup" wins 2025/2026 = that world final
+— KNOWN COSMETIC, accepted for now.
+**RENAME ATTEMPT FAILED AND WAS FULLY REVERTED**: renaming comp 91 data-side
+("FIFA Club World Cup" then "FIFA Intercontinental Cup") broke SAVE LOADING with
+"Unable to find the <NAME> index" — comp 91 is ENGINE-BOUND (GERMAN_LEAGUE_CUP
+identifier + hardcoded name strings in exe); at load the engine resolves its stock
+comps against data BY NAME (eng.lng key and/or club_comp name — exact surface not
+isolated; also each comp's save block "<name>_<id>.tmp" stores its own filename INSIDE
+the payload, so block-table renames desync too). Everything reverted to pre-rename
+state (save + gslp_data.zip + live Data); braces fix retained; save history records
+restored (the -1-hiding also caused index errors, see lessons).
+**IF EVER RETRIED**: rename must cover exe name string + eng.lng slots + club_comp +
+save block-table name + block payload name together; or better, do it engine-side
+(patch the exe's GLC name string, then new saves are born consistent).
+⚠ LESSONS: (1) never write invalid comp ids (-1) into club_comp_history — history
+reader throws index errors; (2) club_comp_history.dat is NOT a uniform 26-byte array
+(pattern-match by comp u32 + year u16 + sane club ids; never stride-walk — a stride
+delete clipped 26 bytes mid-file, repaired from git 0aa4eab); (3) python open(p,"wb")
+truncates BEFORE the argument's read — read first, then write; (4) engine-registered
+comps (identifier strings like GERMAN_LEAGUE_CUP in exe) must never be renamed
+data-side only.
+FORMAT NOTES: club_comp.dat = 107B recs (id u32, name 51 +4, gender +55, short 26 +56,
+gender +82, 3letter +83). Save history block: cup records 26B (comp u32, year u16,
+winner u32, runner u32, -1, -1, ? u32) clustered ≡4 mod 26. Save comp season blocks =
+"<sanitized name>_<id>.tmp" ("/" and "." → "_"), filename ALSO stored in payload.
 ## 🩹 ALL-LEAGUES SUPPORT ROUND (2026-07-09/10) — save surgery + 3 new loader patches
 User plays an all-leagues save (Can+Esp+BR.sav, 2 human mgrs: Barcelona + Vancouver/MLS).
 - **Save format knowledge** (extends gslp_fixsave.py): finance.dat = 11184 recs × 359 B
