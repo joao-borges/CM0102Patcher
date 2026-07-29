@@ -381,7 +381,7 @@ Fix = **bake at file offsets** into the GSLP exes (`tools/gslp_hiddencols.py`, i
 
 ## PRODUCT: COMPLETE & USER-CONFIRMED WORKING
 The self-contained Starter Kit fork ships the finished product. ONLY install =
-`~/Downloads/CM0102.Starter.Kit.Mac.v1.2.2/CM0102StarterKit.app` (+ CM0102.iso archival).
+`/Applications/CM0102StarterKit.app` (moved from ~/Downloads 2026-07-29 for Launchpad) (+ CM0102.iso archival).
 - 3 DBs: Patched 3.9.68 / "25/26 (2026)" / "26/27 (2027)" (+ save/load custom); UI
   simplified (no Nick's Patcher, no Android, no Play submenu); Play button shows the
   ACTIVE DB label; CM Explorer bundled (saves are uncompressed - GS exe default).
