@@ -38,10 +38,28 @@ the insertion free-slot scan at 0x76d09b and the count function 0x53c590
 iterate exactly 0x32 slots), so NEW_MAX must be <= 50. At 50 the validator
 blocks further adds exactly when the array is full.
 
+PATCHES 3+4 (added 2026-07-30 after the user hit "Plantel Inválido" with a
+41-man squad when an injury asked for a replacement): squad VALIDATION on the
+selection screens is a separate site. Two screen flows call the getter pair
+GetMaxSquadSize/GetMinSquadSize (VA 0x7754c0 reads field +0x42 / 0x775520
+reads +0x43, both `ret 8`, national_teams.cpp) and range-check the count:
+
+  0x779b22  jg <invalid>   ; count > max -> "squad must have 22..26, has N"
+  0x779b28  cmp cl, al / jl <invalid>   ; count < min (KEPT)
+  0x77a342  jg <invalid>   ; same check in the second screen flow
+
+We NOP the two max-side `jg`s (6 bytes each); the min check stays. Why not
+pin the getter to 50 instead (nicer messages): the getter's other consumers
+include the engine's auto-call-up loop at 0x90dae0 (called per international
+match for BOTH teams, i.e. AI nations too) which uses GetMax(full)+GetMax(U21)
+as its stop bound — pinning would balloon AI squads. The remaining cosmetic
+imperfection: the "N of MAX selected" header and the too-few-players message
+still print the stock max (26), but nothing blocks any more on count > 26.
+
 Known accepted side effect: a human at a WC-family comp may register more than
 the stock 23 (the AI never does).
 
-Both patch sites are byte-verified identical in stock 3.9.68, both live GSLP
+All patch sites are byte-verified identical in stock 3.9.68, both live GSLP
 exes and gs_pristine (file offset == VA - 0x400000 in .text for all of them).
 
 Idempotent: already-patched exes are detected and left unchanged.
@@ -59,6 +77,12 @@ SITES = [
     (0x36dd7f, bytes.fromhex("0fbe17"),
      lambda m: bytes([0x6A, m, 0x5A]),        # push imm8 / pop edx
      "squad-full message max (VA 0x76dd7f)"),
+    (0x379b22, bytes.fromhex("0f8f55010000"),
+     lambda m: bytes([0x90] * 6),             # NOP the count>max invalidation
+     "screen validation 1 max check (VA 0x779b22)"),
+    (0x37a342, bytes.fromhex("0f8f55010000"),
+     lambda m: bytes([0x90] * 6),             # NOP the count>max invalidation
+     "screen validation 2 max check (VA 0x77a342)"),
 ]
 
 
