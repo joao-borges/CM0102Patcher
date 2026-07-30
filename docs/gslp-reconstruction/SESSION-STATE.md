@@ -48,6 +48,20 @@ copies by diff-marker bytes) and use the NORMAL app Play flow. RE details below.
   filled to 38 without issues. Remaining soft checks (opportunistic, next time
   the user plays): AI squads still 26 after an international window (probe:
   staff +36 == nat_club id count), WC finals AI squad still 23.
+- **2026-07-30 FOLLOW-UP BUG FIXED (patches 3+4)**: with a 41-man squad, an
+  injury's replacement flow hit "Plantel Inválido — between 22 and 26, has 41"
+  and blocked. Root cause: the selection screens VALIDATE the squad via getter
+  pair GetMaxSquadSize 0x7754c0 (+0x42, ret 8) / GetMinSquadSize 0x775520
+  (+0x43); two flows (0x779b04/0x77a324) range-check count and reject on
+  count>max. FIX: NOP the two `jg <invalid>` (file 0x379b22 & 0x37a342,
+  0f8f55010000→90×6); min(22) check kept. Getter itself deliberately NOT
+  pinned to 50: its other consumer 0x90dae0 is the ENGINE auto-call-up loop
+  run per intl match for BOTH teams (AI too) with GetMax(full)+GetMax(U21) as
+  stop bound — pinning would balloon AI squads. Cosmetic leftover: "N of 26"
+  header (0x4596e4) + too-few message still say 26. Shipped: SK 4a184e7,
+  patcher 34ec652, rebuilt + installed in /Applications bundle, a4 finals
+  refreshed (md5 2025=7ab829b2, 2026=56bce363; natsquad50 scratch exes
+  removed). Awaiting user retest of the replacement flow.
 - Accepted side effect (document if shipped): a HUMAN at a WC-family comp may
   register >23 (AI never does).
 - RE breadcrumbs: assert recipe works (push path-string VA; call 0x944cff;
