@@ -140,6 +140,20 @@ copies by diff-marker bytes) and use the NORMAL app Play flow. RE details below.
   the human manager, or accept the engine derives AI manager wages.
 
 ## 🛠 SK BUILT-IN SAVE EDITOR — CURRENT STATE (2026-07-23, SK master 34ce0a2)
+- 2026-07-30 (SK 32834d8): NICKNAME EDITING (players + staff dialogs, "Name"
+  group on the Personal tabs). Save-format facts: staff +12 = common_names.dat
+  id; "no nickname" = pointing at a canonical EMPTY record (id 0 in the user's
+  save, 91k staff on it), NOT -1 (only ~60 stragglers use -1); records are
+  SHARED (Vitinho x18); user save had 1,646 orphaned records (usage 0).
+  common_names.dat sits mid-file -> block CANNOT grow under the stream writer.
+  Edit policy (UiHelper.StageNickname): exact-match repoint > unshared in-place
+  rewrite > orphan recycle (rewrite+repoint) > confirmed shared mass-rename;
+  empty text -> repoint to EmptyCommonNameId. Only the 50-byte text field is
+  written (record tail +50..59 untouched). SaveGame: PlayerRef.BaseName/
+  CommonNameId + Nickname/FindCommonNameId/CommonNameUsage/FindOrphan/
+  Repoint/RewriteCommonNameText (updates staffNamesById + StaffDirectory).
+  Verified: NickHarness (4 paths + reload, byte-diff audit = only intended
+  runs) + NickUiHarness bounds under the bundle engine.
 - 2026-07-30 (SK e591fdf): post-edit refreshes (player/staff dialog OK, batch
   apply) now preserve scroll position, selection (by row Tag) and sort —
   ReplaceRowsKeepingSort gained preserveView; filter-typing refreshes still
