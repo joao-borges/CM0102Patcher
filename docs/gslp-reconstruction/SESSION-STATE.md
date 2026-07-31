@@ -140,6 +140,11 @@ copies by diff-marker bytes) and use the NORMAL app Play flow. RE details below.
   the human manager, or accept the engine derives AI manager wages.
 
 ## 🛠 SK BUILT-IN SAVE EDITOR — CURRENT STATE (2026-07-23, SK master 34ce0a2)
+- 2026-07-30 (SK e591fdf): post-edit refreshes (player/staff dialog OK, batch
+  apply) now preserve scroll position, selection (by row Tag) and sort —
+  ReplaceRowsKeepingSort gained preserveView; filter-typing refreshes still
+  reset to top. Verified with ViewHarness under the bundle wine engine.
+  NB Wine-mono honors FirstDisplayedScrollingRowIndex get/set fine.
 All shipped + installed in the v1.2.2 bundle (user restarts app to pick up builds).
 Editor = 3 tabs (Clubs / Players / Staff), all DataGridView + dock-layout + tab order.
 - **Clubs**: balance (finance int64) + Bank (+101), clamp ≤500M, backup-first.
